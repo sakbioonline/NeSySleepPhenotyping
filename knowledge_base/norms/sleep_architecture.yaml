@@ -1,0 +1,302 @@
+# Sleep Architecture Norms — Adolescent Population
+# -----------------------------------------------------------------------
+# Age-stratified normative reference values for polysomnography-derived
+# sleep metrics. All values grounded in published literature.
+#
+# Age bands:
+#   early_adolescence:  10–13 years (pre/early pubertal)
+#   late_adolescence:   14–17 years (mid/late pubertal, phase delay onset)
+#
+# Sources:
+#   [1] Ohayon MM et al. (2004). Meta-analysis of quantitative sleep
+#       parameters from childhood to old age. Sleep, 27(7):1255-1273.
+#   [2] Mindell JA, Owens JA. (2015). A Clinical Guide to Pediatric
+#       Sleep. Lippincott Williams & Wilkins.
+#   [3] Jenni OG, Carskadon MA. (2004). Spectral analysis of the sleep
+#       EEG in healthy adolescents. Sleep, 27(4):774-783.
+#   [4] DSM-5. (2013). Diagnostic and Statistical Manual of Mental
+#       Disorders, 5th ed. American Psychiatric Association.
+#   [5] National Sleep Foundation. (2015). Sleep duration recommendations.
+#       Sleep Health, 1(1):40-43.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  population: "adolescents"
+  age_bands:
+    early_adolescence:
+      range: [10, 13]
+      notes: >
+        Pre/early pubertal. Sleep architecture resembles late childhood.
+        Higher N3 proportions, longer TST, earlier circadian phase.
+        Circadian phase delay not yet pronounced.
+    late_adolescence:
+      range: [14, 17]
+      notes: >
+        Mid/late pubertal. Puberty-driven circadian phase delay onset.
+        TST shortens, N3 declines toward adult levels. Later sleep onset
+        is normative, not pathological. Critical distinction from
+        psychophysiological insomnia.
+
+# -----------------------------------------------------------------------
+# Sleep efficiency (SE_pct)
+# -----------------------------------------------------------------------
+SE_pct:
+  unit: "%"
+  definition: "TST / TRT × 100"
+
+  early_adolescence:
+    normal_min: 85.0
+    normal_typical: 92.0
+    normal_max: 100.0
+    below_normal_mild: [80.0, 85.0]
+    below_normal_moderate: [70.0, 80.0]
+    below_normal_severe: [0.0, 70.0]
+    source: "[1] Ohayon et al. 2004"
+
+  late_adolescence:
+    normal_min: 83.0       # slightly lower — later onset, earlier wake
+    normal_typical: 90.0
+    normal_max: 100.0
+    below_normal_mild: [78.0, 83.0]
+    below_normal_moderate: [68.0, 78.0]
+    below_normal_severe: [0.0, 68.0]
+    source: "[1] Ohayon et al. 2004; [3] Jenni & Carskadon 2004"
+
+  clinical_note: >
+    In late adolescents, low SE driven solely by delayed sleep onset
+    (late sleep timing with early school wake) should not be
+    interpreted as insomnia. Context from SOL, diary, and L5 midpoint
+    is required to distinguish circadian delay from true insomnia.
+
+# -----------------------------------------------------------------------
+# Total sleep time (TST_min)
+# -----------------------------------------------------------------------
+TST_min:
+  unit: "minutes"
+
+  early_adolescence:
+    recommended_min: 540    # 9 hours
+    recommended_max: 660    # 11 hours
+    normal_min: 480         # 8 hours — below this is clinically short
+    short_sleep: [360, 480] # 6-8 hours
+    very_short_sleep: [0, 360]
+    long_sleep_threshold: 660  # above 11 hours — hypersomnolence signal
+    source: "[2] Mindell & Owens 2015; [5] NSF 2015"
+
+  late_adolescence:
+    recommended_min: 480    # 8 hours
+    recommended_max: 600    # 10 hours
+    normal_min: 420         # 7 hours
+    short_sleep: [300, 420]
+    very_short_sleep: [0, 300]
+    long_sleep_threshold: 600  # above 10 hours — hypersomnolence signal
+    source: "[2] Mindell & Owens 2015; [5] NSF 2015"
+
+  clinical_note: >
+    Hypersomnolence in DSM-5 requires recurrent episodes of excessive
+    sleepiness OR a main sleep episode >9 hours that is non-restorative.
+    In the 21-day study window, TST consistently above long_sleep_threshold
+    across the majority of nights is used as the operationalised proxy.
+
+# -----------------------------------------------------------------------
+# Sleep onset latency (SOL_min)
+# -----------------------------------------------------------------------
+SOL_min:
+  unit: "minutes"
+
+  early_adolescence:
+    normal_max: 20.0        # up to 20 min is normal
+    mildly_prolonged: [20.0, 30.0]
+    moderately_prolonged: [30.0, 45.0]
+    severely_prolonged: [45.0, 999.0]
+    source: "[1] Ohayon et al. 2004; [2] Mindell & Owens 2015"
+
+  late_adolescence:
+    normal_max: 30.0        # circadian delay means later onset is normal
+    mildly_prolonged: [30.0, 45.0]
+    moderately_prolonged: [45.0, 60.0]
+    severely_prolonged: [60.0, 999.0]
+    source: "[3] Jenni & Carskadon 2004"
+    clinical_note: >
+      In late adolescents, SOL up to 30 minutes is within normal range
+      due to normative circadian phase delay. Applying the adult/early
+      adolescent threshold of 20 minutes would over-identify insomnia
+      in this age group.
+
+# -----------------------------------------------------------------------
+# Wake after sleep onset (WASO_min)
+# -----------------------------------------------------------------------
+WASO_min:
+  unit: "minutes"
+
+  early_adolescence:
+    normal_max: 20.0
+    mildly_elevated: [20.0, 40.0]
+    moderately_elevated: [40.0, 60.0]
+    severely_elevated: [60.0, 999.0]
+    source: "[1] Ohayon et al. 2004"
+
+  late_adolescence:
+    normal_max: 25.0
+    mildly_elevated: [25.0, 45.0]
+    moderately_elevated: [45.0, 60.0]
+    severely_elevated: [60.0, 999.0]
+    source: "[1] Ohayon et al. 2004"
+
+# -----------------------------------------------------------------------
+# N3 (slow-wave sleep) percentage
+# -----------------------------------------------------------------------
+N3_pct:
+  unit: "% of TST"
+
+  early_adolescence:
+    normal_min: 20.0      # adolescents have substantially more SWS than adults
+    normal_typical: 28.0
+    normal_max: 40.0
+    below_normal: [5.0, 20.0]
+    severely_reduced: [0.0, 5.0]
+    source: "[1] Ohayon et al. 2004; [3] Jenni & Carskadon 2004"
+
+  late_adolescence:
+    normal_min: 15.0      # SWS begins declining with pubertal maturation
+    normal_typical: 22.0
+    normal_max: 35.0
+    below_normal: [5.0, 15.0]
+    severely_reduced: [0.0, 5.0]
+    source: "[1] Ohayon et al. 2004; [3] Jenni & Carskadon 2004"
+
+  clinical_note: >
+    N3 < 5% combined with WASO > 60 min is used as an SDB-risk marker
+    in the symbolic rules. SDB causes fragmented sleep that suppresses
+    slow-wave sleep and increases wakefulness.
+
+# -----------------------------------------------------------------------
+# N1 (light sleep) percentage
+# -----------------------------------------------------------------------
+N1_pct:
+  unit: "% of TST"
+
+  early_adolescence:
+    normal_max: 8.0
+    mildly_elevated: [8.0, 12.0]
+    moderately_elevated: [12.0, 15.0]
+    severely_elevated: [15.0, 100.0]
+    source: "[1] Ohayon et al. 2004"
+
+  late_adolescence:
+    normal_max: 10.0
+    mildly_elevated: [10.0, 15.0]
+    moderately_elevated: [15.0, 20.0]
+    severely_elevated: [20.0, 100.0]
+    source: "[1] Ohayon et al. 2004"
+
+  clinical_note: >
+    N1 > 15% combined with WASO > 60 min indicates fragmented sleep
+    architecture consistent with restless sleep or sleep-disordered
+    breathing.
+
+# -----------------------------------------------------------------------
+# REM percentage
+# -----------------------------------------------------------------------
+REM_pct:
+  unit: "% of TST"
+
+  early_adolescence:
+    normal_min: 15.0
+    normal_typical: 20.0
+    normal_max: 25.0
+    source: "[1] Ohayon et al. 2004"
+
+  late_adolescence:
+    normal_min: 15.0
+    normal_typical: 20.0
+    normal_max: 25.0
+    source: "[1] Ohayon et al. 2004"
+# -----------------------------------------------------------------------
+# Constraint reference values — explicit single thresholds for pipeline
+# -----------------------------------------------------------------------
+# These are the values loaded by nesy/fusion/constraints.py when
+# heuristics.toml references -999.0 (sentinel = "load from KB").
+# All values are now set explicitly in heuristics.toml (revised).
+# This section documents the derivation rationale for each.
+#
+# Design principle: where early and late adolescence bands differ,
+# the late-adolescence (more permissive) threshold is used. This avoids
+# over-suppressing pathological predictions in older participants whose
+# N3/N1/WASO values are lower by developmental norm, not pathology.
+# -----------------------------------------------------------------------
+
+constraint_reference_thresholds:
+
+  C1_WASO_healthy_max:
+    value: 30.0
+    unit: "minutes"
+    derivation: >
+      KB normal_max: 20 min (early) / 25 min (late). 30 min is a
+      conservative midpoint above both bands' normal_max, consistent
+      with the AASM adolescent criterion and widely cited in the
+      adolescent sleep literature. Nights with WASO > 30 min suppress
+      P(healthy).
+
+  C2_N3_floor_for_healthy:
+    value: 13.0
+    unit: "% of TST"
+    derivation: >
+      KB normal_min: 20% (early) / 15% (late). 13% is below the
+      late-adolescence normal_min — clearly pathological in both age
+      bands. Using 13% rather than 15% provides a small buffer against
+      borderline late-adolescent values triggering false suppression.
+      Nights with N3% < 13% suppress P(healthy).
+
+  C3_N1_restless_floor:
+    value: 15.0
+    unit: "% of TST"
+    derivation: >
+      KB severely elevated: 15% (early) / moderately elevated at 15%
+      (late). Kept at 15% — consistent across both bands as the
+      threshold between moderate and severe N1 elevation.
+
+  C3_WASO_restless_floor:
+    value: 40.0
+    unit: "minutes"
+    derivation: >
+      Lower bound of moderately elevated WASO across both age bands
+      (40 min early / 45 min late). Slightly conservative to avoid
+      missing borderline restless cases.
+
+  C6_N3_healthy_floor:
+    value: 15.0
+    unit: "% of TST"
+    derivation: >
+      Late-adolescence normal_min (15%). C6 is a positive constraint
+      (normal EEG suppresses pathological predictions). Using the
+      late-adolescence threshold avoids suppressing pathological
+      predictions in older participants with developmentally lower N3.
+
+  C6_N1_healthy_ceiling:
+    value: 10.0
+    unit: "% of TST"
+    derivation: >
+      Late-adolescence normal_max (10%).
+
+  C6_WASO_healthy_ceiling:
+    value: 25.0
+    unit: "minutes"
+    derivation: >
+      Late-adolescence normal_max (25 min).
+#
+#  C8_N3_sdb_ceiling:
+#    value: 10.0
+#    unit: "% of TST"
+#    derivation: >
+#      Slightly more permissive than C2 (13%). C8 requires both N3 and
+#      REM to be low simultaneously, so individual thresholds can be
+#      less extreme. 10% is below normal for both age bands.
+#
+#  C8_REM_sdb_ceiling:
+#    value: 15.0
+#    unit: "% of TST"
+#    derivation: >
+#      KB normal_min is 15% for both age bands (Ohayon et al. 2004).
+#      REM < 15% is abnormal regardless of age.

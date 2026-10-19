@@ -1,0 +1,122 @@
+# Actigraphy Norms — REST-Activity Rhythm
+# -----------------------------------------------------------------------
+# Normative reference values for actigraphy-derived circadian rhythm
+# metrics in adolescents. These norms are less well established than
+# PSG norms — adolescent-specific actigraphy literature is limited.
+# Values draw from adult literature adjusted for adolescent population
+# characteristics where adolescent data is unavailable.
+#
+# Sources:
+#   [1] Van Someren EJW et al. (1999). Actigraphic monitoring of
+#       movement and rest-activity rhythms in aging. IEEE Trans Rehab Eng.
+#   [2] Luik AI et al. (2015). Stability and fragmentation of the
+#       rest-activity rhythm across the lifespan. Chronobiology Int.
+#   [3] Quante M et al. (2019). Actigraphy-based sleep estimation in
+#       adolescents. SLEEP, 42(9).
+#   [4] Tonon AC et al. (2020). Actigraphy-based rest-activity rhythm
+#       in adolescents. Sleep Medicine Reviews.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  population: "adolescents"
+  caveats: >
+    Adolescent-specific normative data for IS and IV is limited in the
+    literature. Values below represent best available estimates from
+    mixed-age studies with adolescent subgroups. SSP cohort data should
+    be used to refine these norms empirically as the study progresses.
+  age_bands:
+    early_adolescence: [10, 13]
+    late_adolescence:  [14, 17]
+
+# -----------------------------------------------------------------------
+# Interdaily Stability (IS)
+# -----------------------------------------------------------------------
+IS:
+  range: [0, 1]
+  direction: "higher = more stable rhythm"
+  definition: >
+    Ratio of the variance of the average 24-hour activity profile to
+    the overall variance. Measures day-to-day consistency of the
+    circadian rhythm.
+
+  early_adolescence:
+    normal_min: 0.50
+    normal_typical: 0.65
+    impaired: [0.40, 0.50]
+    severely_impaired: [0.0, 0.40]
+    source: "[2] Luik et al. 2015; [4] Tonon et al. 2020"
+    clinical_note: >
+      IS < 0.40 indicates substantial rhythm irregularity consistent
+      with coupling impairment. IS 0.40–0.50 is borderline and should
+      be interpreted in conjunction with IV and L5 midpoint.
+
+  late_adolescence:
+    normal_min: 0.45      # slightly lower — circadian phase delay
+                          # introduces more day-to-day variability
+    normal_typical: 0.60
+    impaired: [0.35, 0.45]
+    severely_impaired: [0.0, 0.35]
+    source: "[2] Luik et al. 2015; [3] Quante et al. 2019"
+    clinical_note: >
+      Late adolescents have normatively lower IS than younger adolescents
+      due to weekend/weekday social rhythm differences driven by the
+      school schedule and phase delay. Threshold adjusted accordingly.
+
+# -----------------------------------------------------------------------
+# Intradaily Variability (IV)
+# -----------------------------------------------------------------------
+IV:
+  range: [0, 2]
+  direction: "higher = more fragmented rhythm"
+  definition: >
+    Mean squared successive difference divided by overall variance.
+    Measures within-day transitions between activity and rest.
+
+  early_adolescence:
+    normal_max: 0.80
+    mildly_elevated: [0.80, 1.00]
+    moderately_elevated: [1.00, 1.20]
+    severely_elevated: [1.20, 2.00]
+    source: "[1] Van Someren et al. 1999; [2] Luik et al. 2015"
+
+  late_adolescence:
+    normal_max: 0.90      # marginally higher due to more irregular schedules
+    mildly_elevated: [0.90, 1.10]
+    moderately_elevated: [1.10, 1.30]
+    severely_elevated: [1.30, 2.00]
+    source: "[2] Luik et al. 2015; [4] Tonon et al. 2020"
+
+  clinical_note: >
+    IV > 1.0 combined with IS < 0.5 is used as the RAR misalignment
+    signal in R3. IV > 1.0 with L5 midpoint after 05:00 indicates the
+    rest phase is both fragmented and delayed — a compound circadian
+    disruption pattern.
+
+# -----------------------------------------------------------------------
+# L5 midpoint hour
+# -----------------------------------------------------------------------
+L5_midpoint_hour:
+  unit: "hour (0–23)"
+  definition: >
+    Midpoint of the least-active 5-hour window, averaged across the
+    study period. Indicates the centre of the rest phase.
+
+  early_adolescence:
+    normal_range: [1.0, 4.0]    # rest phase centred between 01:00–04:00
+    borderline_delayed: [4.0, 5.0]
+    delayed: [5.0, 24.0]        # rest phase midpoint after 05:00
+    source: "[3] Quante et al. 2019; [4] Tonon et al. 2020"
+
+  late_adolescence:
+    normal_range: [2.0, 5.0]    # normatively later due to phase delay
+    borderline_delayed: [5.0, 6.0]
+    delayed: [6.0, 24.0]
+    source: "[3] Quante et al. 2019"
+    clinical_note: >
+      In late adolescents, L5 midpoint up to 05:00 is within the
+      normative range given the pubertal circadian phase delay.
+      The threshold for flagging RAR misalignment is therefore
+      higher (5.0h) than for early adolescents (5.0h shared threshold
+      but wider normal range). Combined IV > 1.0 is still required
+      to distinguish delayed but stable phase from true misalignment.

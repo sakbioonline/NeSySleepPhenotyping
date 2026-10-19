@@ -1,0 +1,964 @@
+# Medication Ontology for NeSy Sleep Phenotyping
+# -----------------------------------------------------------------------
+# Maps observed medication names (including misspellings and variants)
+# to canonical drug entries with pharmacological class, known sleep
+# effects, and temporal characteristics.
+#
+# Clinical grounding
+# ------------------
+# Sleep effect profiles are grounded in published pharmacology:
+#   [1] Cortese S et al. (2013). Sleep in children with ADHD.
+#       Sleep Medicine Reviews, 17(4):291-301.
+#   [2] Stahl SM. (2021). Stahl's Essential Psychopharmacology, 5th ed.
+#   [3] Becker PM. (2006). Pharmacologic and nonpharmacologic treatments
+#       of insomnia. Neurologic Clinics, 23(1):1191-1215.
+#   [4] Robillard R et al. (2011). Sleep-wake cycle and melatonin rhythms
+#       in adolescents. Chronobiology International.
+#
+# Temporal classification
+# -----------------------
+# night_specific:   Effect concentrated on the night of administration.
+#                   Meaningful to track per night (e.g. melatonin).
+# same_day_residual: Taken during the day; residual effect affects that
+#                   night's sleep due to pharmacokinetic half-life.
+# chronic:          Half-life measured in days/weeks. Night-level
+#                   variation is not meaningful — presence across the
+#                   study period defines the medication context.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  population: "adolescents 10-17"
+  purpose: >
+    Provides the pharmacological knowledge base for medication-aware
+    sleep phenotyping. Medication entries are used by the medication
+    parser to classify diary entries and generate per-night medication
+    context flags that modify symbolic labelling rule behaviour.
+
+# -----------------------------------------------------------------------
+# Drug classes and their net sleep effects
+# -----------------------------------------------------------------------
+drug_classes:
+
+  stimulant:
+    label: "CNS Stimulant"
+    mechanism: >
+      Dopamine and noradrenaline reuptake inhibition. Increases
+      arousal and wakefulness; directly opposes sleep initiation.
+    sleep_effects:
+      SOL: "increases"       # delays sleep onset
+      WASO: "may_increase"   # can cause nocturnal awakenings
+      TST: "may_decrease"    # total sleep time often reduced
+      REM: "may_suppress"    # some REM suppression at high doses
+      circadian: "neutral"   # no direct circadian effect
+    temporal_class: "same_day_residual"
+    half_life_hours: [3, 14]  # range across variants
+    rule_effect: "abstain_if_SOL_elevated"
+    source: "[1] Cortese et al. 2013; [2] Stahl 2021"
+
+  alpha2_agonist:
+    label: "Alpha-2 Adrenergic Agonist"
+    mechanism: >
+      Reduces noradrenergic activity via presynaptic alpha-2
+      receptor agonism. Sedating — often prescribed alongside
+      stimulants to counteract their sleep-disrupting effects.
+    sleep_effects:
+      SOL: "decreases"       # promotes sleep onset
+      WASO: "may_decrease"
+      TST: "may_increase"
+      REM: "neutral"
+      circadian: "neutral"
+    temporal_class: "same_day_residual"
+    half_life_hours: [12, 18]
+    rule_effect: "promotes_sleep_onset"
+    source: "[2] Stahl 2021"
+
+  ssri:
+    label: "Selective Serotonin Reuptake Inhibitor"
+    mechanism: >
+      Inhibits serotonin reuptake. Chronic effects on sleep
+      architecture — REM suppression is the most consistent finding.
+      Acute effects vary; chronic use establishes a new baseline.
+    sleep_effects:
+      SOL: "variable"        # may increase or decrease depending on drug
+      WASO: "may_increase"   # particularly with activating SSRIs
+      TST: "variable"
+      REM: "suppresses"      # consistent across all SSRIs
+      circadian: "neutral"
+    temporal_class: "chronic"
+    half_life_hours: [24, 360]  # fluoxetine active metabolite up to 15 days
+    rule_effect: "flag_rem_suppression"
+    source: "[3] Becker 2006; [2] Stahl 2021"
+
+  snri_nri:
+    label: "Selective Noradrenaline Reuptake Inhibitor"
+    mechanism: >
+      Inhibits noradrenaline reuptake (and to a lesser degree
+      serotonin). Atomoxetine (Strattera) is technically an NRI
+      used as a non-stimulant ADHD treatment. Can be activating.
+    sleep_effects:
+      SOL: "may_increase"
+      WASO: "may_increase"
+      TST: "may_decrease"
+      REM: "may_suppress"
+      circadian: "neutral"
+    temporal_class: "chronic"
+    half_life_hours: [5, 21]
+    rule_effect: "flag_mild_arousal"
+    source: "[2] Stahl 2021"
+
+  melatonin:
+    label: "Melatonin (exogenous)"
+    mechanism: >
+      Exogenous melatonin supplementation. At standard doses (1–5mg)
+      advances circadian phase and promotes sleep onset. Commonly
+      prescribed in autistic adolescents specifically for delayed
+      sleep onset.
+    sleep_effects:
+      SOL: "decreases"       # primary therapeutic effect
+      WASO: "neutral"        # minimal effect on maintenance
+      TST: "may_increase"    # secondary to earlier onset
+      REM: "neutral"
+      circadian: "advances"  # advances the circadian phase
+    temporal_class: "night_specific"
+    half_life_hours: [0.5, 1]
+    rule_effect: "strengthen_SOL_signal"
+    clinical_note: >
+      Melatonin is taken BECAUSE the participant has a sleep onset
+      problem. Elevated SOL despite melatonin is a STRONGER signal
+      for sleep onset difficulty, not a reason to abstain. A
+      participant on melatonin 5mg with SOL > 45 min has
+      treatment-refractory sleep onset delay.
+    source: "[4] Robillard et al. 2011; [2] Stahl 2021"
+
+  non_psychotropic:
+    label: "Non-psychotropic / Sleep-neutral medication"
+    mechanism: >
+      Medications with no direct or established effect on sleep
+      architecture, sleep onset, or circadian timing. Includes
+      antibiotics, antifungals, hormones (insulin, levothyroxine),
+      analgesics, and supplements (probiotics).
+    sleep_effects:
+      SOL: "neutral"
+      WASO: "neutral"
+      TST: "neutral"
+      REM: "neutral"
+      circadian: "neutral"
+    temporal_class: "night_specific"
+    rule_effect: "no_modification"
+    note: >
+      Levothyroxine at supra-therapeutic doses can cause insomnia,
+      but at standard replacement doses (e.g. 88mcg) effects are
+      minimal. Treat as neutral unless dose is flagged as excessive.
+
+# -----------------------------------------------------------------------
+# Individual drug entries — canonical name, variants, class mapping
+# -----------------------------------------------------------------------
+drugs:
+
+  # -- Stimulants --
+
+  vyvanse:
+    canonical_name: "Vyvanse"
+    generic_name: "lisdexamfetamine"
+    drug_class: "stimulant"
+    variants:
+      - "Vyvanse"
+      - "vyvanse"
+      - "Vyvsnse"
+      - "Vyvance"
+      - "vyvance"
+      - "Vyvan"
+    typical_dose_range_mg: [20, 70]
+    half_life_hours: 11
+    notes: >
+      Prodrug — converted to dexamphetamine. Long-acting stimulant
+      with substantial residual effect on evening sleep onset even
+      when taken in the morning. Among the strongest SOL-disrupting
+      stimulants in common use.
+
+  methylphenidate:
+    canonical_name: "Ritalin"
+    generic_name: "methylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Ritalin"
+      - "ritalin"
+      - "Ritalin "
+      - "methylphenidate"
+    typical_dose_range_mg: [5, 60]
+    half_life_hours: 3.5
+    notes: >
+      Short-acting formulation. Half-life ~3-4 hours. If taken as a
+      morning/midday dose only, residual evening effect is modest.
+      Afternoon top-up doses significantly delay SOL.
+
+  focalin:
+    canonical_name: "Focalin"
+    generic_name: "dexmethylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Focalin"
+      - "focalin"
+      - "Focalin "
+      - "Foclin"
+      - "foclin"
+    typical_dose_range_mg: [5, 30]
+    half_life_hours: 3
+    notes: >
+      d-enantiomer of methylphenidate. More potent per mg than
+      racemic methylphenidate. Similar short half-life profile.
+
+  # -- Alpha-2 agonists --
+
+  guanfacine:
+    canonical_name: "Guanfacine"
+    generic_name: "guanfacine"
+    drug_class: "alpha2_agonist"
+    variants:
+      - "Guanfacine"
+      - "guanfacine"
+      - "Guanfacine "
+      - "Gaunfacine"
+      - "gaunfacine"
+      - "IC guanfacine"
+      - "Intuniv"
+      - "intuniv"
+      - "Intuni"
+    typical_dose_range_mg: [1, 4]
+    half_life_hours: 17
+    notes: >
+      Extended-release (Intuniv) and immediate-release forms both
+      used. Often prescribed alongside stimulants to counteract
+      sleep disruption. Sedating — can improve SOL when taken
+      in the evening. Net effect with concurrent stimulant: opposing.
+
+  # -- SSRIs --
+
+  fluoxetine:
+    canonical_name: "Fluoxetine"
+    generic_name: "fluoxetine"
+    drug_class: "ssri"
+    variants:
+      - "Fluoxetine"
+      - "fluoxetine"
+      - "Fluoxetine "
+    typical_dose_range_mg: [10, 40]
+    half_life_hours: 360   # active metabolite norfluoxetine: up to 15 days
+    notes: >
+      Longest half-life SSRI. Activating profile — more likely to
+      cause insomnia than sedating SSRIs. REM suppression is
+      consistent and substantial.
+
+  sertraline:
+    canonical_name: "Zoloft"
+    generic_name: "sertraline"
+    drug_class: "ssri"
+    variants:
+      - "Zoloft"
+      - "zoloft"
+      - "Zoloft "
+      - "Zoloft,"
+      - "sertraline"
+    typical_dose_range_mg: [25, 100]
+    half_life_hours: 26
+    notes: >
+      Moderate half-life SSRI. Less activating than fluoxetine.
+      REM suppression present but typically less marked.
+
+  # -- SNRIs / NRIs --
+
+  atomoxetine:
+    canonical_name: "Strattera"
+    generic_name: "atomoxetine"
+    drug_class: "snri_nri"
+    variants:
+      - "Strattera"
+      - "strattera"
+      - "Strattera "
+    typical_dose_range_mg: [18, 100]
+    half_life_hours: 5
+    notes: >
+      Non-stimulant ADHD medication. Noradrenaline reuptake
+      inhibitor. Can be activating — may delay SOL particularly
+      in the first weeks of treatment. Chronic use effects are
+      more modest.
+
+  # -- Melatonin --
+
+  melatonin:
+    canonical_name: "Melatonin"
+    generic_name: "melatonin"
+    drug_class: "melatonin"
+    variants:
+      - "Melatonin"
+      - "melatonin"
+      - "Melatonin "
+    typical_dose_range_mg: [1, 10]
+    half_life_hours: 0.75
+    notes: >
+      Night-specific. Presence signals that the participant or
+      clinician identified a sleep onset problem. Elevated SOL
+      despite melatonin = treatment-refractory onset delay.
+
+  # -- Non-psychotropic --
+
+  insulin:
+    canonical_name: "Insulin"
+    generic_name: "insulin"
+    drug_class: "non_psychotropic"
+    variants: ["Insulin", "insulin"]
+    notes: "Type 1 diabetes management. No direct sleep effect at therapeutic doses."
+
+  levothyroxine:
+    canonical_name: "Levothyroxine"
+    generic_name: "levothyroxine"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Levothyraxine"
+      - "Levothyroxine"
+      - "levothyroxine"
+    notes: "Thyroid hormone replacement. Sleep-neutral at standard doses."
+
+  itraconazole:
+    canonical_name: "Itraconazole"
+    generic_name: "itraconazole"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Itraconzaole"
+      - "Itraconazole"
+      - "itraconazole"
+    notes: "Antifungal. No direct sleep effect."
+
+  paracetamol:
+    canonical_name: "Paracetamol"
+    generic_name: "acetaminophen"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Tylenol"
+      - "tylenol"
+      - "paracetamol"
+      - "acetaminophen"
+    notes: "Analgesic. No direct sleep effect."
+
+  probiotic:
+    canonical_name: "Probiotic"
+    generic_name: "probiotic_supplement"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Flore"
+      - "flore"
+      - "Flore "
+      - "Gut"
+      - "gut probiotic"
+    notes: "Gut probiotic supplement. No sleep effect."
+
+  concerta:
+    canonical_name: "Concerta"
+    generic_name: "methylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Concerta"
+      - "concerta"
+      - "Concerta ER"
+      - "concerta er"
+      - "concentra"
+      - "Concentra"
+    typical_dose_range_mg: [18, 54]
+    half_life_hours: 8
+    notes: >
+      Extended-release methylphenidate (OROS system). 8–12 hour
+      duration. Afternoon/evening residual effect on SOL is common.
+
+  methylphenidate_extended:
+    canonical_name: "Methylphenidate ER"
+    generic_name: "methylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "methylphenidate cd"
+      - "Methylphenidate CD"
+      - "methylphenidate er"
+      - "Methylphenidate ER"
+      - "methylphenidate, cd"
+      - "methylphenidate, CD"
+      - "methyphenidate"
+      - "methalyphenadate"
+      - "methalphenidate"
+      - "methaylphenidate"
+      - "methalyphenidate"
+    typical_dose_range_mg: [10, 60]
+    half_life_hours: 8
+    notes: Extended-release methylphenidate variants.
+
+  adderall:
+    canonical_name: "Adderall"
+    generic_name: "amphetamine salts"
+    drug_class: "stimulant"
+    variants:
+      - "Adderall"
+      - "adderall"
+      - "Adderall XR"
+      - "adderall xr"
+      - "Adderall XR "
+      - "dextroamphetamine"
+      - "dextrostat"
+      - "Dextrostat"
+    typical_dose_range_mg: [5, 30]
+    half_life_hours: 10
+    notes: >
+      Mixed amphetamine salts. XR form has 10–12 hour duration.
+      Strong SOL disruption even with morning dosing.
+
+  jornay:
+    canonical_name: "Jornay PM"
+    generic_name: "methylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Jornay PM"
+      - "jornay pm"
+      - "Jornay"
+      - "jornay"
+    typical_dose_range_mg: [20, 100]
+    half_life_hours: 10
+    notes: >
+      Delayed-release methylphenidate taken in the evening to provide
+      morning coverage. Unique pharmacokinetics — taken at night,
+      releases in morning. Direct night-time exposure is distinct
+      from other stimulants.
+
+  focalin_xr:
+    canonical_name: "Focalin XR"
+    generic_name: "dexmethylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Focalin XR"
+      - "focalin xr"
+      - "FocalinXR"
+      - "focalinxr"
+      - "dexmethylphenidate 15mg"
+      - "dexmethylphenidate 20mg"
+      - "dexmethylphenidate er 15mg"
+      - "Dexmethylphenidate 15mg"
+      - "Dexmethylphenidate 20mg"
+      - "dexmethylphenidate er"
+    typical_dose_range_mg: [5, 30]
+    half_life_hours: 5
+    notes: Extended-release dexmethylphenidate.
+
+  azstarys:
+    canonical_name: "Azstarys"
+    generic_name: "serdexmethylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Azstarys"
+      - "azstarys"
+    typical_dose_range_mg: [26.1, 52.3]
+    half_life_hours: 6
+    notes: Prodrug of dexmethylphenidate. Extended duration stimulant.
+
+  quillivant:
+    canonical_name: "Quillivant XR"
+    generic_name: "methylphenidate"
+    drug_class: "stimulant"
+    variants:
+      - "Quillivant XR"
+      - "quillivant xr"
+      - "Quillivant"
+      - "quillivant"
+    typical_dose_range_mg: [20, 60]
+    half_life_hours: 8
+    notes: Liquid extended-release methylphenidate.
+
+  lisdexamfetamine:
+    canonical_name: "Vyvanse"
+    generic_name: "lisdexamfetamine"
+    drug_class: "stimulant"
+    variants:
+      - "lisdexamfetamine"
+      - "Lisdexamfetamine"
+    typical_dose_range_mg: [20, 70]
+    half_life_hours: 11
+    notes: Generic name for Vyvanse — resolves to same entry.
+
+  qelbree:
+    canonical_name: "Qelbree"
+    generic_name: "viloxazine"
+    drug_class: "snri_nri"
+    variants:
+      - "Qelbree"
+      - "qelbree"
+    typical_dose_range_mg: [100, 400]
+    half_life_hours: 7
+    notes: >
+      Non-stimulant ADHD medication. Selective noradrenaline
+      reuptake inhibitor. Can be activating — may delay SOL.
+      Not a stimulant but has mild arousal-promoting properties.
+
+  clonidine:
+    canonical_name: "Clonidine"
+    generic_name: "clonidine"
+    drug_class: "alpha2_agonist"
+    variants:
+      - "Clonidine"
+      - "clonidine"
+      - "clonidine 0.1mg"
+      - "Clonidine 0.1mg"
+      - "clonidine 0.1mg tab"
+      - "clonidine 0.1 mg"
+      - "clonodine"
+      - "Clonodine"
+      - "clinidine"
+      - "clonadine"
+      - "clonidone"
+      - "Clinidine"
+      - "clonidine er"
+      - "same clonidine er"
+    typical_dose_range_mg: [0.05, 0.4]
+    half_life_hours: 12
+    notes: >
+      Alpha-2 agonist. Sedating — commonly prescribed for
+      sleep onset in autistic children alongside stimulants.
+      Promotes SOL when taken at bedtime.
+
+  atomoxetine_variants:
+    canonical_name: "Strattera"
+    generic_name: "atomoxetine"
+    drug_class: "snri_nri"
+    variants:
+      - "atomoxetine"
+      - "Atomoxetine"
+      - "atomoxetine hcl"
+      - "Atomoxetine HCl"
+      - "stratera"
+      - "Stratera"
+    typical_dose_range_mg: [18, 100]
+    half_life_hours: 5
+    notes: Additional variants for atomoxetine/Strattera.
+
+  trazodone:
+    canonical_name: "Trazodone"
+    generic_name: "trazodone"
+    drug_class: "sedating_antidepressant"
+    variants:
+      - "Trazodone"
+      - "trazodone"
+      - "Trazadone"
+      - "trazadone"
+      - "Trazadone "
+    typical_dose_range_mg: [25, 150]
+    half_life_hours: 7
+    notes: >
+      Sedating antidepressant — commonly prescribed off-label
+      for insomnia. Promotes sleep onset and maintenance.
+      Does not confound SOL elevation.
+
+  prozac:
+    canonical_name: "Prozac"
+    generic_name: "fluoxetine"
+    drug_class: "ssri"
+    variants:
+      - "Prozac"
+      - "prozac"
+      - "Prozac 40mg"
+      - "prosack"
+      - "Prosack"
+      - "flovoxetine"
+      - "fluvoxitine"
+      - "fluvoxetine"
+      - "fluexotine"
+      - "flovoxetine"
+    typical_dose_range_mg: [10, 60]
+    half_life_hours: 360
+    notes: Brand name and misspelling variants of fluoxetine.
+
+  lexapro:
+    canonical_name: "Lexapro"
+    generic_name: "escitalopram"
+    drug_class: "ssri"
+    variants:
+      - "Lexapro"
+      - "lexapro"
+      - "escitalopram"
+      - "Escitalopram"
+      - "escitrolopram"
+      - "Escitrolopram"
+    typical_dose_range_mg: [5, 20]
+    half_life_hours: 27
+    notes: SSRI. Moderately activating profile.
+
+  sertraline_variants:
+    canonical_name: "Zoloft"
+    generic_name: "sertraline"
+    drug_class: "ssri"
+    variants:
+      - "sertraline hcl"
+      - "sertraline hcl 25mg"
+      - "sertraline hcl 50mg"
+      - "Sertraline HCl"
+      - "serttaline"
+      - "serttaline"
+    typical_dose_range_mg: [25, 200]
+    half_life_hours: 26
+    notes: Additional sertraline variants.
+
+  wellbutrin:
+    canonical_name: "Wellbutrin"
+    generic_name: "bupropion"
+    drug_class: "snri_nri"
+    variants:
+      - "Wellbutrin"
+      - "wellbutrin"
+      - "bupropion"
+      - "Bupropion"
+      - "buproprion"
+      - "Buproprion"
+    typical_dose_range_mg: [75, 300]
+    half_life_hours: 21
+    notes: >
+      Noradrenaline-dopamine reuptake inhibitor. Can be activating —
+      may increase SOL particularly at higher doses.
+
+  cymbalta:
+    canonical_name: "Cymbalta"
+    generic_name: "duloxetine"
+    drug_class: "snri_nri"
+    variants:
+      - "Cymbalta"
+      - "cymbalta"
+      - "cymbolta"
+      - "Cymbolta"
+    typical_dose_range_mg: [30, 120]
+    half_life_hours: 12
+    notes: SNRI. Can be activating. May delay SOL.
+
+  venlafaxine:
+    canonical_name: "Venlafaxine"
+    generic_name: "venlafaxine"
+    drug_class: "snri_nri"
+    variants:
+      - "Venlafaxine"
+      - "venlafaxine"
+      - "venlaxine"
+      - "venlefaxine"
+      - "desvelafaxine er"
+      - "Desvelafaxine ER"
+    typical_dose_range_mg: [37.5, 225]
+    half_life_hours: 5
+    notes: SNRI. Active metabolite desvenlafaxine has 11h half-life.
+
+  amitriptyline:
+    canonical_name: "Amitriptyline"
+    generic_name: "amitriptyline"
+    drug_class: "sedating_antidepressant"
+    variants:
+      - "Amitriptyline"
+      - "amitriptyline"
+      - "amitriptilyn"
+      - "Amitriptilyn"
+      - "amitriptylin"
+      - "Amitriptylin"
+    typical_dose_range_mg: [10, 75]
+    half_life_hours: 20
+    notes: >
+      Tricyclic antidepressant. Strongly sedating — used off-label
+      for insomnia in adolescents. Promotes sleep maintenance.
+
+  hydroxyzine:
+    canonical_name: "Hydroxyzine"
+    generic_name: "hydroxyzine"
+    drug_class: "sedating_antidepressant"
+    variants:
+      - "Hydroxyzine"
+      - "hydroxyzine"
+      - "hydroxyzine hcl"
+      - "Hydroxyzine HCl"
+      - "hydroxyzin pam."
+      - "hydroxozine"
+    typical_dose_range_mg: [10, 50]
+    half_life_hours: 20
+    notes: >
+      Antihistamine with sedating properties. Used off-label
+      for anxiety and insomnia. Promotes sleep onset.
+
+  guanfacine_er:
+    canonical_name: "Guanfacine ER"
+    generic_name: "guanfacine"
+    drug_class: "alpha2_agonist"
+    variants:
+      - "guanfacine er"
+      - "Guanfacine ER"
+      - "guafacine"
+      - "Guafacine"
+      - "guanficine"
+      - "Guanficine"
+      - "quafasine"
+    typical_dose_range_mg: [1, 4]
+    half_life_hours: 17
+    notes: Extended-release guanfacine and misspelling variants.
+
+  # Non-psychotropic additions
+  zyrtec:
+    canonical_name: "Zyrtec"
+    generic_name: "cetirizine"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Zyrtec"
+      - "zyrtec"
+      - "zyrtec 5mg/5ml"
+      - "cetirizine"
+      - "Cetirizine"
+      - "ceterizine"
+      - "cetiricine"
+      - "citirizine"
+      - "ceterizine"
+      - "zytec"
+      - "xyzal"
+      - "Xyzal"
+      - "claritin"
+      - "Claritin"
+      - "loratadine"
+      - "loratidine"
+      - "loraradine"
+      - "loratadine"
+      - "allegra"
+      - "Allegra"
+    notes: Antihistamines. Non-sedating at standard doses — sleep neutral.
+
+  montelukast:
+    canonical_name: "Montelukast"
+    generic_name: "montelukast"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Montelukast"
+      - "montelukast"
+      - "Singular"
+      - "singular"
+      - "montelucast"
+      - "montslukast"
+    notes: Leukotriene receptor antagonist for asthma/allergies. Sleep neutral.
+
+  magnesium:
+    canonical_name: "Magnesium"
+    generic_name: "magnesium"
+    drug_class: "non_psychotropic"
+    variants:
+      - "Magnesium"
+      - "magnesium"
+      - "magnesium oxide"
+      - "Magnesium oxide"
+    notes: >
+      Supplement. Some evidence for modest sleep-promoting effects
+      at high doses but not clinically significant at typical OTC doses.
+
+  vitamins:
+    canonical_name: "Vitamins/Supplements"
+    generic_name: "supplement"
+    drug_class: "non_psychotropic"
+    variants:
+      - "vitamin d"
+      - "Vitamin D"
+      - "vitamin d3"
+      - "Vitamin D3"
+      - "vitamin d 3"
+      - "vitamin b 12"
+      - "vitamin b12"
+      - "Vitamin B12"
+      - "calcium with vitamin d"
+      - "calcium and vitamin d"
+      - "calcium vitamin d"
+      - "calcium and vitamin d"
+      - "multivitamin with iron"
+      - "multivitamin with probiotic"
+      - "multivitamin with probiotics"
+      - "teen girl multivitamin"
+      - "teen girls multivitamin"
+      - "teen multivitamin"
+      - "girl teen multivitamin"
+      - "teen girl, multivite"
+      - "creatine"
+      - "ashwaganda"
+      - "ashwaganda gummy"
+      - "vsl probotic"
+      - "probiotic"
+      - "l5 methylfolate"
+      - "l5 mthfr"
+    notes: Vitamins and supplements. No direct sleep effect.
+
+  antipsychotics:
+    canonical_name: "Antipsychotic"
+    generic_name: "antipsychotic"
+    drug_class: "non_psychotropic"
+    variants:
+      - "risperidone"
+      - "Risperidone"
+      - "abilify"
+      - "Abilify"
+      - "aripiprazole"
+      - "Aripiprazole"
+      - "aripiprizole"
+      - "ziprasidone"
+      - "Ziprasidone"
+      - "olanzapine"
+      - "Olanzapine"
+      - "olanzapibe"
+      - "vraylar"
+      - "Vraylar"
+      - "depakote"
+      - "Depakote"
+      - "lamictal"
+      - "Lamictal"
+    notes: >
+      Antipsychotics and mood stabilisers. Sedating at standard doses —
+      classified as non_psychotropic for sleep SOL abstain purposes
+      because they promote sleep rather than disrupting it.
+      Flag for architecture analysis separately.
+
+  misc_non_psychotropic:
+    canonical_name: "Other non-psychotropic"
+    generic_name: "other"
+    drug_class: "non_psychotropic"
+    variants:
+      - "omeprazole"
+      - "pantoprazole"
+      - "lansoprazole"
+      - "prilosec"
+      - "famotadine"
+      - "famotidine"
+      - "lisinopril"
+      - "metoprolol"
+      - "nadolol"
+      - "atenolol"
+      - "atenalol"
+      - "atenlol"
+      - "hydralazine"
+      - "metformin"
+      - "oxcarbazepine"
+      - "oxcarbezepine"
+      - "oxcarzabepine"
+      - "oxcarzapepine"
+      - "oxcarbaxepine"
+      - "ibuprofen"
+      - "Ibuprofen"
+      - "ibuprofen 100mgper5ml"
+      - "advil"
+      - "motrin"
+      - "colace"
+      - "colacw"
+      - "miralax"
+      - "desmopressin"
+      - "oxybutynin"
+      - "amantadine"
+      - "amoxicillin"
+      - "azithromycin"
+      - "cephalexin"
+      - "doxycycline"
+      - "terbinafine"
+      - "ofloxacin"
+      - "omnicef"
+      - "omnivef"
+      - "z-pack"
+      - "z pack"
+      - "zpack"
+      - "iazithromycin"
+      - "benztropine"
+      - "benzotropine"
+      - "cyproheptadine"
+      - "cyproheptad"
+      - "ciproheptadine"
+      - "ciprohepedidine"
+      - "cryptoheptad"
+      - "cyproheptidine"
+      - "ciproheptidine"
+      - "symbicort inhaler"
+      - "qvar"
+      - "albuterol"
+      - "albuterol inhaler"
+      - "astalin nose spray"
+      - "flonase"
+      - "mucinex"
+      - "mucinex nightshift er"
+      - "spironolactone"
+      - "kurvelo"
+      - "oral birth control"
+      - "naltrexone"
+      - "ldn"
+      - "potassium citrate"
+      - "potassium chloride"
+      - "acetazolamide"
+      - "imipramine"
+      - "pamprin"
+      - "dayquil"
+      - "sudafed"
+      - "benadryl"
+      - "same"
+      - "same as before"
+      - "s"
+      - "a"
+      - "n/a"
+      - "charlotte's web 1 sleep, 1 calm cbd gummy"
+      - "i'm nicer"
+      - "motein"
+    notes: >
+      Miscellaneous non-psychotropic medications with no direct
+      sleep onset or architecture effect relevant to phenotyping.
+
+
+  minor_analgesics:
+    canonical_name: "Minor analgesic/anti-inflammatory"
+    generic_name: "analgesic"
+    drug_class: "non_psychotropic"
+    variants:
+      - "aspirin"
+      - "Aspirin"
+      - "meloxicam"
+      - "Meloxicam"
+      - "bentyl"
+      - "Bentyl"
+      - "l5"
+      - "L5"
+    notes: Non-psychotropic. No direct sleep effect.
+
+# -----------------------------------------------------------------------
+# Net effect rules for polypharmacy combinations
+# -----------------------------------------------------------------------
+combination_rules:
+
+  stimulant_plus_alpha2:
+    classes: ["stimulant", "alpha2_agonist"]
+    net_sol_effect: "opposing"
+    net_description: >
+      Stimulant delays SOL; alpha-2 agonist promotes SOL. Net effect
+      on sleep onset is uncertain and patient-specific. Cannot reliably
+      attribute elevated SOL to either drug in isolation.
+    rule_action: "abstain_complex_polypharmacy"
+
+  stimulant_plus_melatonin:
+    classes: ["stimulant", "melatonin"]
+    net_sol_effect: "opposing"
+    net_description: >
+      Stimulant delays SOL; melatonin advances it. Melatonin was
+      likely prescribed specifically to counteract stimulant-related
+      onset delay. Elevated SOL despite both = refractory onset delay.
+    rule_action: "strengthen_SOL_signal"
+    clinical_note: >
+      This combination is clinically meaningful. A participant on
+      both a stimulant and melatonin who STILL has SOL > 45 min
+      has a more severe sleep onset problem than the raw SOL suggests.
+
+  ssri_plus_stimulant:
+    classes: ["ssri", "stimulant"]
+    net_sol_effect: "delays"
+    net_description: >
+      Both classes can delay or disrupt sleep. Combined effect
+      may be additive for SOL disruption. REM suppression from
+      SSRI confounds N3/REM architecture labels.
+    rule_action: "abstain_if_SOL_elevated"
+
+  alpha2_only:
+    classes: ["alpha2_agonist"]
+    net_sol_effect: "advances"
+    net_description: >
+      Guanfacine alone is sedating and promotes sleep onset.
+      Does not confound SOL elevation — if SOL is elevated
+      despite guanfacine, it is a genuine sleep onset difficulty.
+    rule_action: "label_normally"

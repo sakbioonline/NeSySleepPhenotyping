@@ -1,0 +1,62 @@
+# 22q11.2DS cohort pipeline configuration
+# Fitbit + Click EEG + sleep diary · 7-night protocol
+#
+# Key differences from SSP (pipeline.yaml):
+#   - min_rar_days reduced from 5 to 3 (7-night protocol)
+#   - min_dreem_nights reduced from 3 to 2 (Click EEG, shorter protocol)
+#   - min_diary_nights reduced from 3 to 2
+#   - device_actigraphy: fitbit (not embraceplus)
+#   - device_eeg: click_eeg (not dreem)
+#   - sensitivity_rar_days: 2 (was 3 in SSP)
+#   - lf_r3_misalign: active (L5 available from Fitbit intraday)
+#   - ROCKET window: same (22:00 → 08:00)
+
+cohort:
+  name: "22q11.2DS"
+  description: >
+    22q11.2DS deletion syndrome cohort.
+    Fitbit Inspire HR (intraday HR + steps at 1-min resolution) +
+    Click EEG (nightly sleep staging + per-epoch hypnogram) +
+    electronic sleep diary. 7-night home monitoring protocol.
+  protocol_nights: 7
+
+devices:
+  actigraphy: "fitbit"          # options: embraceplus, fitbit, actiwatch
+  eeg:        "click_eeg"       # options: dreem, click_eeg
+  diary:      "sleep_diary"     # same format as SSP
+
+analytic_sample:
+  min_rar_days:       3         # reduced from 5 (only 7 nights available)
+  sensitivity_rar_days: 2       # SA1 sensitivity threshold
+  min_dreem_nights:   2         # Click EEG nights (reduced from 3)
+  min_diary_nights:   2         # diary nights (reduced from 3)
+
+# participant_ids: []           # leave empty to include all participants
+                                # or list specific IDs to restrict
+
+rocket:
+  window_start: "22:00"
+  window_end:   "08:00"
+  n_kernels:    1000            # reduced from 2000 — smaller cohort, faster
+
+labelling:
+  # lf_r3_misalign active — L5 computable from Fitbit intraday
+  # lf_r3_coupling active — IS computable from Fitbit intraday
+  # lf_r1 active — diary available
+  # lf_r2_* active — Click EEG provides N1, N3, WASO
+  use_all_lfs: true
+
+outcomes:
+  # 22q-specific outcome measures (different from SSP)
+  available:
+    - ADHD_Count          # number of ADHD diagnostic criteria met
+    - ODD_Count           # oppositional defiant disorder criteria
+    - Anxiety_Count       # anxiety symptoms count
+    - Mood_Count          # mood disorder criteria
+    - ASQ_Score           # Autism Spectrum Quotient score
+  # mapping to shared constructs for cross-cohort comparison with SSP
+  construct_map:
+    hyperactivity:  "ADHD_Count"      # SSP equivalent: abc_hyperactivity
+    anxiety:        "Anxiety_Count"   # SSP equivalent: cbcl_anxious_depressed
+    social:         "ASQ_Score"       # SSP equivalent: srs_total_t_score
+    conduct:        "ODD_Count"       # SSP equivalent: abc_irritability

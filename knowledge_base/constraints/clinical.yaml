@@ -1,0 +1,195 @@
+# Clinical Constraints — DSM-5 Adapted for 21-Day Study Window
+# -----------------------------------------------------------------------
+# Logical constraints derived from DSM-5 diagnostic criteria, adapted
+# for a cross-sectional 21-night observational study.
+#
+# IMPORTANT ADAPTATION NOTE:
+# DSM-5 insomnia disorder requires symptom persistence ≥ 3 months.
+# This criterion cannot be verified in a 21-day study. All phenotype
+# assignments are pattern-based operationalisations of DSM-5 constructs,
+# not clinical diagnoses. The persistence criterion is replaced by a
+# within-study frequency criterion (≥ 3 nights showing the pattern).
+#
+# Sources:
+#   [1] DSM-5 (2013). American Psychiatric Association.
+#   [2] ICSD-3 (2014). American Academy of Sleep Medicine.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  dsm5_adaptation: >
+    3-month persistence criterion replaced by within-study frequency:
+    a phenotype pattern must appear on ≥ 3 nights in the study window
+    to be considered clinically meaningful. Single-night occurrences
+    may reflect transient situational factors rather than stable patterns.
+  enforcement: "soft"   # violations inform, do not automatically exclude
+
+# -----------------------------------------------------------------------
+# DSM-5 insomnia disorder criteria — operationalised
+# DSM-5 diagnostic code: 780.52
+# -----------------------------------------------------------------------
+insomnia_operationalised:
+
+  core_criterion_A: >
+    Dissatisfaction with sleep quantity or quality associated with
+    one or more of: difficulty initiating sleep, difficulty maintaining
+    sleep, early morning awakening.
+
+  study_operationalisation:
+    difficulty_initiating:
+      condition: "SOL_min > SOL_threshold_for_age"
+      frequency: ">=3 nights in study window"
+      note: "SOL threshold varies by age band — see norms/sleep_architecture.yaml"
+
+    difficulty_maintaining:
+      condition: "WASO_min > WASO_threshold_for_age"
+      frequency: ">=3 nights in study window"
+
+    subjective_complaint:
+      condition: "SQ <= 5 OR DIFF >= 2"
+      frequency: ">=3 nights in study window"
+      note: >
+        DSM-5 requires the person to report a sleep complaint. The diary
+        SQ and DIFF fields operationalise this. SQ <= 5 (out of 10) or
+        DIFF >= 2 (out of 3) is treated as a complaint.
+
+  criterion_B_distress:
+    note: >
+      DSM-5 requires significant distress or impairment. In the SSP
+      study, ANX >= 6 or SQ <= 3 on multiple nights is used as a
+      proxy for distress. Full functional impairment assessment
+      (academic, social) is not available in this dataset.
+
+  criterion_C_opportunity:
+    note: >
+      DSM-5 requires the sleep disturbance to occur despite adequate
+      opportunity. The study design assumes participants have adequate
+      opportunity to sleep. This criterion is not explicitly checked.
+
+  criterion_D_persistence_adapted:
+    original: "Present >= 3 nights per week for >= 3 months"
+    adapted: "Pattern present >= 3 nights within the 21-day window"
+    rationale: >
+      The weekly frequency component (3+ nights/week) maps to roughly
+      9+ nights in a 21-day window. However, given the shorter window
+      and the probabilistic nature of the Snorkel labels, we use a
+      more conservative threshold of >=3 nights to avoid excessive
+      abstentions on short recordings.
+
+  criterion_E_not_explained:
+    note: >
+      DSM-5 requires the disturbance is not better explained by another
+      sleep disorder. The mutual exclusion constraints (see ontology.yaml)
+      handle this. A night cannot be simultaneously labelled insomnia
+      and hypersomnolence.
+
+# -----------------------------------------------------------------------
+# DSM-5 hypersomnolence disorder — operationalised
+# DSM-5 diagnostic code: 780.54
+# -----------------------------------------------------------------------
+hypersomnolence_operationalised:
+
+  core_criterion:
+    condition: "TST_min > TST_long_sleep_threshold_for_age"
+    frequency: ">=3 nights in study window"
+    note: >
+      DSM-5 hypersomnolence requires recurrent episodes of excessive
+      sleepiness OR main sleep episode > 9 hours that is non-restorative.
+      TST above the age-appropriate long_sleep_threshold is used as the
+      operationalised proxy.
+
+  dsm5_mutual_exclusion:
+    excluded_phenotypes: [1, 2, 3]   # insomnia subtypes
+    rationale: >
+      DSM-5 explicitly states hypersomnolence disorder is not better
+      explained by insomnia disorder. A participant cannot carry both
+      an insomnia phenotype and hypersomnolence as their dominant label.
+      Per-night co-occurrence is flagged for review.
+
+# -----------------------------------------------------------------------
+# Circadian rhythm constraints
+# -----------------------------------------------------------------------
+circadian:
+
+  delayed_sleep_in_late_adolescence:
+    note: >
+      CRITICAL for late adolescents (14-17). DSM-5 Circadian Rhythm
+      Sleep-Wake Disorder (Delayed Sleep Phase Type) requires the
+      delay to be persistent and cause significant distress/impairment.
+      In late adolescents, delayed sleep onset up to 30 min SOL and
+      L5 midpoint up to 05:00 is normative, not pathological.
+      The RAR misalignment phenotype (label 4) should only be assigned
+      when the delay exceeds normative bounds for the age band AND is
+      combined with rhythm fragmentation (IV > 1.0).
+
+  rar_misalignment_criteria:
+    conditions:
+      - "IS < IS_coupling_threshold"
+      - "IV > IV_misalign_threshold"
+      - "L5_midpoint_hour > L5_misalign_threshold_for_age"
+    all_conditions_required: false
+    note: >
+      R3 uses a tiered approach. Not all three conditions need to be
+      met. The labelling function assigns different phenotypes based on
+      which combination is present. See symbolic/rules.py for the
+      precise logic.
+
+# -----------------------------------------------------------------------
+# Frequency constraints — within study window
+# -----------------------------------------------------------------------
+frequency:
+
+  minimum_nights_for_phenotype:
+    value: 3
+    rationale: >
+      A phenotype appearing on fewer than 3 nights may reflect
+      transient situational factors (illness, travel, exam stress)
+      rather than a stable sleep pattern. The stratification layer
+      applies this threshold when converting per-night labels to
+      participant-level phenotype assignments.
+
+  minimum_nights_for_participant:
+    value: 5
+    rationale: >
+      Participants with fewer than 5 valid nights cannot be reliably
+      phenotyped. Their data contributes to group-level analyses but
+      their individual phenotype assignment is marked as unreliable.
+
+  dominance_threshold:
+    value: 0.40
+    rationale: >
+      A phenotype must appear on at least 40% of a participant's valid
+      nights to be considered dominant. Below this threshold, the
+      participant's pattern is too mixed or erratic for a single-label
+      assignment.
+
+# -----------------------------------------------------------------------
+# Paradoxical insomnia specific constraints
+# -----------------------------------------------------------------------
+paradoxical_insomnia:
+
+  definition: >
+    Sleep misperception: objective sleep is within normal range but
+    the participant subjectively reports poor sleep quality. The
+    discordance itself is the defining feature.
+
+  operationalisation:
+    objective_normal:
+      condition: "SE_pct >= SE_healthy_min AND WASO_min <= WASO_healthy_max"
+    subjective_poor:
+      condition: "SQ <= SQ_paradox_max OR DIFF >= DIFF_paradox_min"
+    both_required: true
+
+  magnitude_note: >
+    The discordance must be meaningful. A participant with SE=86% and
+    SQ=6 is not paradoxical — the objective-subjective gap is small.
+    Paradoxical insomnia requires clearly good objective sleep paired
+    with clearly poor subjective experience.
+
+  dsm5_note: >
+    DSM-5 does not list paradoxical insomnia as a separate disorder —
+    it appears under the ICSD-3 classification. In DSM-5 terms it
+    falls within the insomnia disorder category with the specifier
+    of sleep misperception. The label is retained here as it is
+    clinically meaningful and distinguishable from other insomnia
+    subtypes using the available data.

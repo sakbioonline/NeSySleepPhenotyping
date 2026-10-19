@@ -1,0 +1,111 @@
+# Physiology Norms — Heart Rate and HRV
+# -----------------------------------------------------------------------
+# Normative reference values for EmbracePlus-derived physiological
+# signals in adolescents. Age-stratified by the same two bands used
+# throughout the knowledge base.
+#
+# Sources:
+#   [1] Fleming S et al. (2011). Normal ranges of heart rate and
+#       respiratory rate in children. Lancet, 377(9770):1011-1018.
+#   [2] Umetani K et al. (1998). Twenty-four hour time domain heart
+#       rate variability and heart rate. JACC, 31(3):593-601.
+#   [3] Jarrin DC et al. (2015). Autonomic dysfunction in insomnia.
+#       Sleep Medicine Reviews, 22:69-80.
+#   [4] Koenig J et al. (2016). Resting heart rate variability in
+#       healthy adolescents. Frontiers in Psychology, 7.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  population: "adolescents"
+  signals: ["pulse_rate_bpm", "prv_rmssd_ms"]
+  measurement_context:
+    pulse_rate_bpm: "Daily mean across all valid 1-minute epochs (24-hour)"
+    prv_rmssd_ms: "Nocturnal mean during EmbracePlus-detected sleep periods"
+
+# -----------------------------------------------------------------------
+# Resting / daily mean heart rate (pulse_rate_bpm)
+# -----------------------------------------------------------------------
+pulse_rate_bpm:
+  unit: "beats per minute"
+  measurement: "daily mean across all valid minutes (24-hour)"
+
+  early_adolescence:
+    normal_min: 55.0
+    normal_max: 90.0
+    normal_typical: 72.0
+    elevated: [90.0, 100.0]
+    high: [100.0, 999.0]       # tachycardia threshold
+    low: [0.0, 55.0]           # bradycardia threshold
+    source: "[1] Fleming et al. 2011"
+    clinical_note: >
+      Daily mean HR in early adolescents is higher than adults due to
+      smaller cardiac output. Values up to 90 bpm are within normal
+      range. Chronically elevated mean HR (>90 bpm across study) may
+      reflect sympathetic hyperactivation associated with poor sleep.
+
+  late_adolescence:
+    normal_min: 50.0
+    normal_max: 85.0
+    normal_typical: 68.0
+    elevated: [85.0, 100.0]
+    high: [100.0, 999.0]
+    low: [0.0, 50.0]
+    source: "[1] Fleming et al. 2011"
+
+  longitudinal_note: >
+    For GBTM trajectory purposes, the clinically meaningful signal is
+    the SLOPE of daily mean HR across the study period rather than the
+    absolute value. A rising slope (increasing HR across 21 days)
+    indicates increasing sympathetic load regardless of whether the
+    absolute values are within normal range.
+
+# -----------------------------------------------------------------------
+# Nocturnal RMSSD (prv_rmssd_ms)
+# -----------------------------------------------------------------------
+prv_rmssd_ms:
+  unit: "milliseconds"
+  measurement: "nocturnal mean during EmbracePlus-detected sleep periods"
+
+  early_adolescence:
+    normal_min: 35.0
+    normal_typical: 60.0
+    normal_max: 120.0
+    reduced: [20.0, 35.0]      # reduced parasympathetic activity
+    severely_reduced: [0.0, 20.0]
+    source: "[4] Koenig et al. 2016; [2] Umetani et al. 1998"
+    clinical_note: >
+      RMSSD is substantially higher in younger adolescents than adults
+      due to greater parasympathetic tone in the pre-pubertal period.
+      Normal range is therefore wider and higher than adult references.
+
+  late_adolescence:
+    normal_min: 25.0
+    normal_typical: 48.0
+    normal_max: 100.0
+    reduced: [15.0, 25.0]
+    severely_reduced: [0.0, 15.0]
+    source: "[4] Koenig et al. 2016"
+
+  sleep_quality_interpretation:
+    high_rmssd: >
+      High nocturnal RMSSD (above normal_typical) indicates good
+      parasympathetic dominance during sleep — associated with
+      restorative sleep and healthy autonomic regulation.
+    low_rmssd: >
+      Low nocturnal RMSSD (below normal_min) indicates reduced
+      parasympathetic recovery during sleep. Associated with insomnia,
+      anxiety, and poor sleep quality in adolescents per [3] Jarrin 2015.
+    declining_slope: >
+      A negative slope in nocturnal RMSSD across the study period
+      (declining RMSSD night over night) is a marker of cumulative
+      autonomic deterioration — clinically meaningful independent of
+      absolute values.
+
+  longitudinal_note: >
+    For GBTM trajectory purposes, both the mean level and the slope
+    of nocturnal RMSSD are informative. A participant with low mean
+    RMSSD (reduced baseline parasympathetic tone) and negative slope
+    (further deteriorating across the study) represents a high-risk
+    autonomic trajectory that should condition the logistic regression
+    toward disorder phenotypes.

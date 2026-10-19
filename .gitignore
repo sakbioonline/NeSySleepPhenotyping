@@ -1,0 +1,15 @@
+data/
+runs/
+transfer_results/
+*.csv
+*.parquet
+*.npy
+*.pdf
+run_log.txt
+archive/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.idea/
+.ipynb_checkpoints/

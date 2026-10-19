@@ -1,0 +1,277 @@
+# NeSy heuristic knowledge store
+# -----------------------------------------------------------------------
+# This file is the single source of truth for all clinical thresholds
+# used in the symbolic labelling layer (Rules R1–R3).
+#
+# To adjust a threshold: change the value here and re-run the pipeline.
+# No Python files need to be touched.
+#
+# All threshold names are referenced directly by nesy/knowledge/ontology.py
+# which compiles them into RuleSet objects consumed by nesy/symbolic/rules.py
+# -----------------------------------------------------------------------
+
+[phenotypes]
+# Integer label → phenotype name mapping.
+# Must stay consistent with the label space in nesy/symbolic/rules.py.
+labels = [
+    [0, "within_normative_range"],
+    [1, "paradoxical_insomnia"],
+    [2, "conditioned_arousal"],
+    [3, "hypersomnolence"],
+    [4, "rar_misalignment"],
+    [5, "coupling_impairment"],
+    #[6, ""],
+]
+abstain = -1
+
+# -----------------------------------------------------------------------
+# Rule R1 — Subjective + objective agreement
+# Inputs: SE_pct, WASO_min, SQ (morningFeeling), DIFF (sleep_difficulty),
+#         ANX (anxious_restless), SOL_min
+# -----------------------------------------------------------------------
+[rules.R1]
+
+# Healthy sleep: good objective AND good subjective
+SE_healthy_min    = 85.0   # sleep efficiency threshold (%)
+WASO_healthy_max  = 45.0   # wake after sleep onset (min)
+SQ_healthy_min    = 6.0    # subjective quality floor (0–10)
+DIFF_healthy_max  = 2.0    # sleep difficulty ceiling (1–3)
+
+# Paradoxical insomnia: good objective BUT poor subjective
+# (same SE/WASO thresholds as healthy, but SQ or DIFF reversed)
+SQ_paradox_max    = 3.0    # subjective quality ceiling for paradoxical
+DIFF_paradox_min  = 3.0    # sleep difficulty floor for paradoxical
+                           # DIFF is on a 1–3 scale: 3 = significant
+                           # sleep difficulty, triggering paradoxical
+                           # on current scale — adjust if scale changes.
+
+# Psychophysiological insomnia: prolonged sleep onset OR high anxiety
+SOL_psychophys_min = 45.0  # sleep onset latency threshold (min)
+ANX_psychophys_min = 6.0   # anxious threshold (0–10)
+
+# Restless sleep: good subjective quality but high WASO
+SQ_restless_min   = 6.0    # subjective quality floor
+DIFF_restless_max = 2.0    # sleep difficulty ceiling (≤2 = no/some difficulty)
+                           # DIFF=3 with high WASO → psychophys not restless
+WASO_restless_min = 60.0   # wake after sleep onset floor (min)
+
+# -----------------------------------------------------------------------
+# Rule R2 — Sleep architecture (Dreem-derived)
+# Inputs: N1_pct, WASO_min, TST_min, N3_pct
+# -----------------------------------------------------------------------
+[rules.R2]
+
+# Restless: elevated N1 combined with high WASO
+N1_restless_min   = 15.0   # N1 percentage threshold (% of TST)
+WASO_restless_min = 60.0   # wake after sleep onset (min)
+
+# Hypersomnolence: excessive total sleep time
+TST_hypersomnia_min = 600.0  # total sleep time threshold (min = 10 hrs)
+
+# SDB-risk: very low slow-wave sleep combined with high WASO
+N3_sdb_max        = 5.0    # N3 percentage ceiling (% of TST)
+WASO_sdb_min      = 60.0   # wake after sleep onset floor (min)
+
+# -----------------------------------------------------------------------
+# Rule R3 — REST-activity rhythm + somatic coupling
+# Inputs: IS (interdaily stability), IV (intradaily variability),
+#         L5_midpoint_hour
+# -----------------------------------------------------------------------
+[rules.R3]
+
+# Coupling impairment: very low interdaily stability
+IS_coupling_max   = 0.4    # IS ceiling for coupling impairment (bottom quartile of SSP cohort, 25th pct=0.36)
+IV_coupling_exclusion = 1.0
+# RAR misalignment: fragmented rhythm AND late rest phase
+IV_misalign_min   = 0.40   # IV floor for misalignment (90th percentile of SSP cohort, N=184) #updated from 0.45
+L5_misalign_min   = 4.0    # L5 midpoint hour floor (after 04:30, ~15% of SSP cohort) #updated from 4.5
+
+# Psychophysiological (via RAR): low stability AND high fragmentation --> now conditioned_arousal
+IS_psychophys_max = 0.5    # IS ceiling
+IV_psychophys_min = 1.0    # IV floor
+
+# -----------------------------------------------------------------------
+# GBTM — Group-Based Trajectory Modelling settings
+# Used by nesy/knowledge/gbtm.py
+# -----------------------------------------------------------------------
+[gbtm]
+n_groups                  = 4      # number of trajectory groups to fit
+min_nights                = 5      # minimum nights per participant for inclusion
+min_hr_minutes_per_day    = 360    # minimum valid HR minutes to accept a day
+min_rmssd_minutes_per_day = 60     # minimum valid RMSSD sleep minutes to accept a day
+confidence_flag_threshold = 0.6    # flag low-confidence assignments in coverage report
+random_seed               = 42
+
+# -----------------------------------------------------------------------
+# Constraint functions — L_constraints
+# Used by nesy/fusion/constraints.py
+#
+# These thresholds define the physiological impossibility rules that
+# regularise the MLP during training.  All inputs are from X_partial
+# (D1 actigraphy / D2 EEG morphology) only — no diary, no medication.
+#
+# To adjust a threshold: change the value here and re-run the pipeline.
+# Thresholds are validated against the cohort feature distributions in
+# nesy/fusion/constraints.py::validate_thresholds().
+#
+# Sensitivity analysis: re-run with [constraints.sensitivity] overrides
+# to test how robust phenotype assignments are to threshold choices.
+# -----------------------------------------------------------------------
+[constraints]
+##new constraint
+R1_conditioned_floor = 0.25
+R2_rar_floor = 0.25
+R3_hyper_floor = 0.20
+R4_normative_floor = 0.25 #0.40
+R5_coupling = 0.25
+# Architecture rules
+
+R6_N3_norm_min = 25.0 #20.0
+R6_REM_norm_min = 20# 18.0
+R6_normative_floor = 0.20 #0.35
+
+R7_N1_high_min = 10.0
+R7_rar_floor = 0.25
+# ── Design note ──────────────────────────────────────────────────────
+# Clinical thresholds (WASO, N3, N1, REM) are loaded from:
+#   knowledge_base/norms/sleep_architecture.yaml  ← SINGLE SOURCE OF TRUTH
+# Values set to -999.0 here are automatically replaced by KB values.
+# Only set a value here (not -999.0) to explicitly override the KB.
+#
+# Runtime parameters (λ weights, epsilon, GBTM modifier, ROCKET
+# fragmentation percentiles) are defined here only — not in the KB.
+# ─────────────────────────────────────────────────────────────────────
+
+# ── C1: High WASO → suppress P(healthy) ─────────────────────────────
+# Rationale: AASM healthy sleep criterion for adolescents is WASO < 30 min.
+# 60 min is a conservative upper bound allowing for normal adolescent variation.
+# Source: AASM 2016 adolescent sleep recommendations.
+#C1_WASO_threshold_min   = -999.0 # loaded from knowledge_base/norms/sleep_architecture.yaml   # WASO (min) above which healthy is suppressed
+#C1_penalty_weight       = 1.0    # λ weight for this constraint
+#####new##########
+# C1 — WASO suppression of within_normative_range (tiered)
+C1_WASO_threshold_min      = 60.0    # moderate WASO floor (min)
+C1_WASO_extreme_min        = 120.0   # extreme WASO floor (min)
+C1_penalty_weight          = 1.0     # moderate suppression weight
+C1_extreme_penalty_weight  = 1.2     # extreme suppression weight
+C1_conditioned_floor       = 0.15    # minimum P(conditioned_arousal) on extreme nights
+##################
+# ── C2: Very low N3% → suppress P(healthy), elevate P(SDB_risk) ─────
+# Rationale: Adolescent N3 norm is 13–23% of TST (Ohayon et al. 2004).
+# N3 < 5% with elevated WASO is the primary EEG signature of SDB in
+# adolescents (Beebe 2011).
+#C2_N3_threshold_max     = -999.0 # loaded from KB norms    # N3% below which healthy is suppressed
+#C2_penalty_weight       = 1.0
+
+# ── C3: High N1% AND high WASO → elevate P(restless) ────────────────
+# Rationale: Restless sleep disorder characterised by elevated N1 and
+# nocturnal movement arousals (Ipsiroglu et al. 2019; AASM 2021).
+#C3_N1_threshold_min     = -999.0 # loaded from KB norms   # N1% above which restless is elevated
+#C3_WASO_threshold_min   = -999.0 # loaded from KB norms   # WASO (min) co-occurring with high N1
+#C3_penalty_weight       = 0.8
+
+# ── C2_new: Low ROCKET fragmentation → suppress P(coupling_impairment) ──
+# Rationale: Coupling impairment requires disrupted rest-activity rhythm.
+# A regular nocturnal waveform is inconsistent with this phenotype.
+# Threshold set empirically from ROCKET feature matrix distribution
+# (percentile-based — computed at first pipeline run and stored below).
+C2_frag_threshold_low   = -999.0 # placeholder — set after first run
+C2_percentile           = 25     # bottom X% of frag scores = "low"
+C2_penalty_weight       = 1.0
+
+# ── C3_new: High ROCKET fragmentation → suppress P(healthy) ─────────────
+# Rationale: High nocturnal fragmentation is incompatible with healthy
+# sleep architecture regardless of subjective report.
+C3_frag_threshold_high  = -999.0 # placeholder — set after first run
+C3_percentile           = 75     # top X% of frag scores = "high"
+C3_penalty_weight       = 1.0
+
+# ── C4_new: Normal EEG + regular waveform → suppress all pathological ───
+# Positive constraint: when sensors jointly indicate healthy architecture,
+# pathological predictions should be penalised.
+#C6_N3_healthy_min       = -999.0 # loaded from KB norms   # N3% floor for healthy architecture
+#C6_N1_healthy_max       = -999.0 # loaded from KB norms   # N1% ceiling for healthy architecture
+C4_SE_healthy_min    = 85.0   # minimum SE for normal actigraphy signal (%)
+C4_WASO_healthy_max     = 30.0 # loaded from KB norms   # WASO ceiling for healthy architecture
+C4_penalty_weight       = 0.8
+
+# ── C5_new: Cross-modal disagreement → suppress overconfident prediction ─
+# Rationale: When ROCKET and EEG disagree on sleep quality, high-confidence
+# single-class prediction is epistemically unjustified.
+# Disagreement defined as: ROCKET frag decile vs EEG quality decile differ
+# by more than C5_disagreement_gap deciles.
+#C5_disagreement_gap     = 5      # decile gap threshold (0–10 scale)
+#C5_confidence_cap       = 0.80   # max(Ŷ) penalised if above this
+#C5_penalty_weight       = 0.6
+C5_n3_pct_thresh = 0.20        # >= 20% N3 sleep (remains 0.20)
+C5_n3_motion_thresh = 90.0     # Updated from 5.0 -> 90.0 (isolates top ~10% extreme motion)
+C5_confidence_cap = 0.70
+
+# ── C6_new: N3% very low AND REM% very low → P(SDB_risk) must be elevated
+# Rationale: SDB suppresses both N3 and REM via arousal fragmentation
+# (Beebe 2011). Joint low N3+REM is a stronger SDB signature than either.
+C6_TST_threshold_min     = 540.0 # loaded from KB norms    # N3% ceiling
+C6_penalty_weight       = 0.8    # slightly higher — rare class needs boosting
+
+#C7
+C7_SE_threshold_max = 70.0
+C7_penalty_weight =  1.0
+# ── Constraint softness (ε) ──────────────────────────────────────────
+# Predictions below ε are not penalised (prevents vanishing gradients
+# when the model is already nearly correct).
+epsilon                 = 0.05
+
+# ── Global constraint loss weight ────────────────────────────────────
+# λ in: L_total = L_data + λ · (C_eeg + C_traj + C_smooth)
+# A single outer λ weights all three constraint families equally.
+# Per-rule weights (C1_penalty_weight etc.) scale within C_eeg.
+# Start at 0.5 — increase if constraints not binding, decrease if
+# they dominate the supervision signal.
+lambda_global           = 0.5
+
+# ── C_smooth parameters ───────────────────────────────────────────────
+# C_smooth penalises abrupt night-to-night prediction swings within
+# a participant.  Brought under lambda_global so the paper notation
+# L_total = L_data + λ·(C_eeg + C_traj + C_smooth) holds exactly.
+lambda_smooth           = 1.0    # relative weight of C_smooth within L_constraints
+                                 # final weight = lambda_global × lambda_smooth
+lambda_eeg = 1.0    # relative weight of C_eeg within L_constraints
+                    # final weight = lambda_global × lambda_eeg
+                    # (symmetric with lambda_smooth)
+smooth_delta            = 0.3    # tolerance threshold — swings ≤ δ are not penalised
+                                 # 0.3 ≈ one phenotype probability unit in L2 norm
+
+# ── GBTM modifier — scales per-rule λ by trajectory group ───────────
+# Applied to C1 (healthy suppression), C5 (frag→healthy), C6 (positive)
+# High-fragmentation group: tighten healthy constraint, relax coupling
+[constraints.gbtm_modifier]
+high_frag_group_ids         = [0]    # GBTM group IDs classified as high-fragmentation
+                                     # UPDATE after first pipeline run
+regulated_group_ids         = [3]    # GBTM group IDs classified as regulated
+                                     # UPDATE after first pipeline run
+confidence_threshold        = 0.6    # only apply modifier when GBTM conf > this
+lambda_healthy_high_frag    = 1.5    # multiply C1/C5 λ for high-frag participants
+lambda_healthy_regulated    = 0.7    # multiply C1/C5 λ for regulated participants
+lambda_coupling_high_frag   = 0.7    # relax coupling constraint for high-frag
+                                     # (high-frag participants already likely coupling impaired)
+lambda_coupling_regulated   = 1.5    # tighten coupling constraint for regulated
+                                     # (regulated trajectory makes coupling impairment less likely)
+# Note: coupling modifiers are documented in Methods 2.7.3 under C_traj description
+
+# ── Sensitivity analysis overrides ───────────────────────────────────
+# Run pipeline with --sensitivity-constraints to use these values
+# instead of the primary thresholds above.
+[constraints.sensitivity]
+#C1_WASO_threshold_min   = 45.0   # stricter (AASM primary criterion)
+#C2_N3_threshold_max     = 8.0    # more permissive
+#C3_N1_threshold_min     = 12.0   # more permissive
+#C6_WASO_healthy_max     = 45.0   # more permissive
+lambda_global           = 0.3    # weaker constraint influence
+
+# -----------------------------------------------------------------------
+# Validation thresholds
+# Used by nesy/validation/
+# -----------------------------------------------------------------------
+[validation]
+min_nights_per_participant = 5   # exclude participants with fewer nights
+recording_quality_min      = 0.5 # Dreem quality score floor

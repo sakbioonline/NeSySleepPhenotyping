@@ -1,0 +1,201 @@
+# NeSy pipeline configuration
+# -------------------------------------------------------------------
+# Edit cohort.data_root to point at your raw data directory.
+# All other settings have sensible defaults.
+#
+# Run:  python run_pipeline.py --config configs/pipeline.yaml
+# -------------------------------------------------------------------
+
+cohort:
+  name: SSP
+  data_root: data/ssp          # path to raw data root (relative or absolute)
+  embraceplus_dir: embraceplus  # sub-folder containing EmbracePlus CSVs
+  dreem_dir: dreem              # sub-folder containing Dreem files
+  diary_dir: diary              # sub-folder containing sleep diary CSV
+  # Uncomment to run on a subset of participants:
+  participant_ids:
+    - "SP0013553"
+    - "SP0018852"
+    - "SP0018916"
+    - "SP0055413"
+    - "SP0055699"
+    - "SP0067349"
+    - "SP0067350"
+    - "SP0067840"
+    - "SP0067841" #problematic
+    - "SP0082296"
+    - "SP0082299"
+    - "SP0091665"
+    - "SP0091666"
+    - "SP0102701"
+    - "SP0103108"
+    - "SP0107297"
+    - "SP0108057"
+    - "SP0108058"
+    - "SP0111341"
+    - "SP0111343"
+    - "SP0114386"
+    - "SP0144302"
+    - "SP0144304"
+    - "SP0149690"
+    - "SP0149691"
+    - "SP0158651"
+    - "SP0159373"
+    - "SP0162100"
+    - "SP0162102"
+    - "SP0165625"
+    - "SP0165627"
+    - "SP0166719"
+    - "SP0168279"
+    - "SP0168382"
+    - "SP0168383"
+    - "SP0182089"
+    - "SP0182433"
+    - "SP0182435"
+    - "SP0197306"
+    - "SP0197307"
+    - "SP0200196"
+    - "SP0200197"
+    - "SP0206736"
+    - "SP0206737"
+    - "SP0207628"
+    - "SP0207630"
+    - "SP0217015"
+    - "SP0217016"
+    - "SP0217400"
+    - "SP0222972"
+    - "SP0222973"
+    - "SP0230684"
+    - "SP0238809"
+    - "SP0249406"
+    - "SP0249409"
+    - "SP0252854"
+    - "SP0252855"
+    - "SP0260732"
+    - "SP0264294"
+    - "SP0266426"
+    - "SP0267910"
+    - "SP0267911"
+    - "SP0271771"
+    - "SP0284093"
+    - "SP0286402"
+    - "SP0286403"
+    - "SP0302130"
+    - "SP0302131"
+    - "SP0329442"
+    - "SP0329443"
+    - "SP0340352"
+    - "SP0340354"
+    - "SP0344035"
+    - "SP0345618"
+    - "SP0355731"
+    - "SP0355734"
+    - "SP0363672"
+    - "SP0363676"
+    - "SP0370683"
+    - "SP0370684"
+    - "SP0371947"
+    - "SP0379560"
+    - "SP0379561"
+    - "SP0381713"
+    - "SP0381714"
+    - "SP0382388"
+    - "SP0386521"
+    - "SP0386759"
+    - "SP0386787"
+    - "SP0386788"
+    - "SP0387012"
+    - "SP0398956"
+    - "SP0403791"
+    - "SP0403792"
+    - "SP0409494"
+    - "SP0409495"
+    - "SP0410385"
+    - "SP0410387"
+    - "SP0410485"
+    - "SP0418528"
+    - "SP0430033"
+    - "SP0430037"
+    - "SP0433561"
+    - "SP0433562"
+    - "SP0433768"
+    - "SP0433769"
+    - "SP0437865"
+    - "SP0437866"
+    - "SP0439590"
+    - "SP0439591"
+    - "SP0440174"
+    - "SP0440175"
+    - "SP0444401"
+    - "SP0444402"
+    - "SP0450691"
+    - "SP0451425"
+    - "SP0451426"
+    - "SP0453182"
+    - "SP0453183"
+    - "SP0473682"
+    - "SP0474552"
+    - "SP0474553"
+    - "SP0476645"
+    - "SP0489616"
+    - "SP0489617"
+    - "SP0489863"
+    - "SP0489864"
+    - "SP0492338"
+    - "SP0492339"
+    - "SP0495443"
+    - "SP0495445"
+    - "SP0496099"
+    - "SP0496100"
+    - "SP0513888"
+    - "SP0513889"
+    - "SP0516122"
+    - "SP0532983"
+    - "SP0532985"
+    - "SP0013583"
+    - "SP0114384"
+    - "SP0159371"
+    - "SP0209345"
+    - "SP0240680"
+    - "SP0266425"
+    - "SP0344036"
+    - "SP0386524"
+    - "SP0386758"
+    - "SP0476647"
+    - "SP0488319"
+run:
+  random_seed: 42
+  log_level: INFO               # DEBUG, INFO, or WARNING
+  output_dir: runs              # where pipeline outputs are saved
+  fmt: parquet                  # parquet (recommended) or csv
+
+# Analytic sample thresholds
+# Participants below min_valid_rar_days are excluded from IS computation
+# and from the primary analytic sample (RAR is the binding constraint).
+# Participants below sensitivity_rar_days are excluded from all analyses.
+# See Methods section 2.2 for justification.
+# ROCKET feature extraction window
+# Covers full nocturnal period — override suggest_rocket_window() output
+rocket:
+  window_start: "22:00"   # 22:00 covers pre-sleep activity signal
+  window_end:   "08:00"   # 08:00 covers full night including late risers
+  n_kernels:    1000
+
+#analytic_sample:
+#  min_valid_rar_days: 5         # primary sample (IS stable, 74.5% of cohort)
+#  sensitivity_rar_days: 3       # sensitivity sample (84.0% of cohort)
+#  min_dreem_nights: 3           # minimum Dreem nights required
+#  min_diary_nights: 3           # minimum diary nights required
+#
+analytic_sample:
+  min_valid_rar_days: 5
+  min_aligned_nights: 5
+  min_qual_mean: 0.5
+  qual_mean_exceptions:
+    - "SP0091665"  # n=17, qual_min=0.41 (no single bad night), N3%=30.5 above clean-group mean
+
+
+# Paths to supporting knowledge files
+heuristics_path: configs/heuristics.toml
+kb_path: knowledge_base
+devices_path: configs/devices.yaml

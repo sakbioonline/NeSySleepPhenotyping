@@ -1,0 +1,270 @@
+# NeSy Sleep Phenotyping Ontology
+# -----------------------------------------------------------------------
+# Defines the formal vocabulary, concept hierarchy, and relationships
+# used throughout the framework. Every clinical construct referenced
+# in norms, constraints, or phenotype definitions must be defined here.
+#
+# This is not a diagnosis system. Phenotype labels are pattern-based
+# cluster assignments derived from observable signals within the 21-day
+# study window. DSM-5 provides the clinical vocabulary and construct
+# definitions; operationalisation is adapted to the study design.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  population: "adolescents"
+  age_range: [10, 17]
+  study_design: "cross-sectional observational, 21 nights"
+  clinical_standard: "DSM-5"
+  created: "2024"
+  notes: >
+    Phenotype labels are study-window operationalisations of DSM-5
+    constructs. The 3-month persistence criterion in DSM-5 insomnia
+    disorder cannot be verified in a 21-day study. All phenotype
+    assignments should be interpreted as pattern flags, not clinical
+    diagnoses.
+
+# -----------------------------------------------------------------------
+# Sleep stage hierarchy
+# -----------------------------------------------------------------------
+sleep_stages:
+  Sleep:
+    subtypes:
+      NREM:
+        subtypes:
+          N1:
+            label: "Stage 1 NREM"
+            description: "Light sleep, transition from wake"
+            typical_pct_adolescent: [3, 8]
+            dreem_code: 1
+            embraceplus_code: 101.0
+          N2:
+            label: "Stage 2 NREM"
+            description: "Sleep spindles and K-complexes"
+            typical_pct_adolescent: [30, 55]
+            dreem_code: 2
+            embraceplus_code: null
+          N3:
+            label: "Slow-wave sleep / SWS"
+            description: "Deep sleep, restorative"
+            typical_pct_adolescent: [15, 35]
+            dreem_code: 3
+            embraceplus_code: 102.0
+      REM:
+        label: "Rapid eye movement sleep"
+        description: "Dreaming, memory consolidation"
+        typical_pct_adolescent: [15, 25]
+        dreem_code: 4
+        embraceplus_code: null
+  Wake:
+    description: "Wakefulness during recording"
+    dreem_code: 0
+    embraceplus_code: 0.0
+  Unscored:
+    description: "Epoch could not be scored"
+    dreem_code: -1
+    embraceplus_code: 300.0
+
+# -----------------------------------------------------------------------
+# Signal → clinical construct mappings
+# What each measured variable operationalises clinically
+# -----------------------------------------------------------------------
+signal_constructs:
+
+  # Dreem polysomnography-derived
+  SE_pct:
+    construct: "Sleep efficiency"
+    definition: "TST / TRT × 100"
+    unit: "%"
+    modality: "Dreem"
+    clinical_relevance: "Primary index of sleep quality"
+
+  TST_min:
+    construct: "Total sleep time"
+    definition: "Total minutes scored as sleep (N1+N2+N3+REM)"
+    unit: "minutes"
+    modality: "Dreem"
+    clinical_relevance: "Quantity of sleep obtained"
+
+  SOL_min:
+    construct: "Sleep onset latency"
+    definition: "Minutes from lights-out to first epoch of sleep"
+    unit: "minutes"
+    modality: "Dreem"
+    clinical_relevance: "Difficulty initiating sleep"
+
+  WASO_min:
+    construct: "Wake after sleep onset"
+    definition: "Minutes of wakefulness after initial sleep onset"
+    unit: "minutes"
+    modality: "Dreem"
+    clinical_relevance: "Difficulty maintaining sleep"
+
+  N3_pct:
+    construct: "Slow-wave sleep proportion"
+    definition: "N3 as percentage of TST"
+    unit: "%"
+    modality: "Dreem"
+    clinical_relevance: "Depth and restorative quality of sleep"
+
+  N1_pct:
+    construct: "Light sleep proportion"
+    definition: "N1 as percentage of TST"
+    unit: "%"
+    modality: "Dreem"
+    clinical_relevance: "Elevated N1 indicates fragmented or disrupted sleep"
+
+  # Sleep diary — subjective self-report
+  SQ:
+    construct: "Subjective sleep quality"
+    source_field: "morningFeeling"
+    scale: [0, 10]
+    direction: "higher = better"
+    modality: "Sleep diary"
+    clinical_relevance: "Subjective perception of sleep quality"
+
+  DIFF:
+    construct: "Sleep difficulty"
+    source_field: "sleep_difficulty"
+    scale: [1, 3]
+    direction: "higher = more difficulty"
+    modality: "Sleep diary"
+    clinical_relevance: "Self-reported difficulty sleeping"
+
+  ANX:
+    construct: "Anxious/restless pre-sleep arousal"
+    source_field: "anxious_restless"
+    scale: [0, 10]
+    direction: "higher = more anxious"
+    modality: "Sleep diary"
+    clinical_relevance: "Cognitive and somatic pre-sleep arousal"
+
+  # Actigraphy — REST-activity rhythm
+  IS:
+    construct: "Interdaily stability"
+    definition: "Consistency of 24-hr activity rhythm across days"
+    range: [0, 1]
+    direction: "higher = more stable"
+    modality: "EmbracePlus"
+    clinical_relevance: "Circadian rhythm regularity"
+
+  IV:
+    construct: "Intradaily variability"
+    definition: "Fragmentation of activity rhythm within a day"
+    range: [0, 2]
+    direction: "higher = more fragmented"
+    modality: "EmbracePlus"
+    clinical_relevance: "Within-day rhythm fragmentation"
+
+  L5_midpoint_hour:
+    construct: "L5 midpoint"
+    definition: "Midpoint hour of least-active 5-hour window"
+    unit: "hour (0-24)"
+    modality: "EmbracePlus"
+    clinical_relevance: "Rest phase timing; delayed = circadian phase delay"
+
+# -----------------------------------------------------------------------
+# Phenotype taxonomy
+# -----------------------------------------------------------------------
+phenotypes:
+
+  label_space:
+    0: healthy
+    1: paradoxical_insomnia
+    2: psychophysiological_insomnia
+    3: restless
+    4: rar_misalignment
+    5: hypersomnolence
+    6: sdb_risk
+    7: coupling_impairment
+    "-1": abstain
+
+  # Grouping by clinical domain
+  domains:
+    insomnia_spectrum:
+      phenotypes: [1, 2, 3]
+      description: >
+        Phenotypes characterised by difficulty initiating or maintaining
+        sleep, with or without subjective-objective discordance.
+      dsm5_parent: "Insomnia Disorder (780.52)"
+
+    circadian_rhythm:
+      phenotypes: [4, 7]
+      description: >
+        Phenotypes characterised by disruption of the rest-activity
+        rhythm, circadian misalignment, or autonomic-circadian coupling
+        impairment.
+      dsm5_parent: "Circadian Rhythm Sleep-Wake Disorder (327.3x)"
+
+    hypersomnolence_spectrum:
+      phenotypes: [5]
+      description: >
+        Phenotypes characterised by excessive sleep duration or daytime
+        sleepiness.
+      dsm5_parent: "Hypersomnolence Disorder (780.54)"
+
+    breathing_related:
+      phenotypes: [6]
+      description: >
+        Phenotypes characterised by sleep architecture consistent with
+        sleep-disordered breathing risk markers.
+      dsm5_parent: "Obstructive Sleep Apnea Hypopnea (327.23)"
+
+    normative:
+      phenotypes: [0]
+      description: "Sleep within age-appropriate normative ranges."
+
+  # Known mutual exclusions — hard constraints
+  mutual_exclusions:
+    - [0, 1]   # healthy cannot co-occur with paradoxical insomnia
+    - [0, 2]   # healthy cannot co-occur with psychophysiological insomnia
+    - [0, 3]   # healthy cannot co-occur with restless
+    - [0, 4]   # healthy cannot co-occur with RAR misalignment
+    - [0, 5]   # healthy cannot co-occur with hypersomnolence
+    - [0, 6]   # healthy cannot co-occur with SDB-risk
+    - [0, 7]   # healthy cannot co-occur with coupling impairment
+    - [5, 1]   # hypersomnolence and paradoxical insomnia (DSM-5 exclusion)
+    - [5, 2]   # hypersomnolence and psychophysiological insomnia (DSM-5 exclusion)
+    - [5, 3]   # hypersomnolence and restless insomnia (DSM-5 exclusion)
+
+  # Known clinically plausible co-occurrences
+  # Source: literature + clinical reasoning; not empirically confirmed in SSP
+  known_compound_patterns:
+    sdb_restless:
+      phenotypes: [6, 3]
+      label: "sdb_with_restlessness"
+      rationale: >
+        SDB-related arousals commonly manifest as restless sleep in
+        adolescents. Well documented in paediatric sleep literature.
+      confidence: "established"
+
+    rar_psychophys:
+      phenotypes: [4, 2]
+      label: "circadian_psychophysiological"
+      rationale: >
+        Circadian misalignment can trigger conditioned arousal and
+        psychophysiological insomnia through sleep-incompatible
+        associations during the delayed phase window.
+      confidence: "plausible"
+
+    coupling_rar:
+      phenotypes: [7, 4]
+      label: "autonomic_circadian_dysregulation"
+      rationale: >
+        Coupling impairment and RAR misalignment both reflect
+        circadian-autonomic dysregulation and likely share common
+        underlying mechanisms.
+      confidence: "plausible"
+
+  # Instability classification
+  instability:
+    entropy_threshold: 1.5   # Shannon entropy above which pattern is unstable
+    min_dominant_frequency: 0.4  # phenotype must appear on ≥ 40% of nights
+                                  # to be considered dominant
+    description: >
+      When no phenotype meets the dominance threshold AND entropy
+      exceeds the threshold, the participant is classified as
+      'unstable'. High instability is a clinically meaningful finding
+      in its own right — it indicates high night-to-night variability
+      which is associated with worse functional outcomes than stable
+      poor sleep.

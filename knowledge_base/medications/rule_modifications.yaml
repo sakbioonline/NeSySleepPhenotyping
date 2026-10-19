@@ -1,0 +1,203 @@
+# Medication Rule Modification Logic
+# -----------------------------------------------------------------------
+# Defines how per-night medication context modifies the behaviour of
+# symbolic labelling rules R1, R2, and R3.
+#
+# Design rationale
+# ----------------
+# Medication does not change what constitutes a phenotype — the clinical
+# definitions in phenotypes/ remain unchanged. What changes is whether
+# the observed sleep metrics can be attributed to the participant's
+# intrinsic sleep biology or whether they are medication-confounded.
+#
+# The framework distinguishes three outcomes when medication is present:
+#
+#   abstain_confounded:
+#       The observed metric is likely explained by medication. The rule
+#       returns -1 with abstain_reason="medication_confounded". This
+#       night is excluded from the primary phenotype analysis but
+#       retained in the medication-stratified sensitivity analysis.
+#
+#   strengthen_signal:
+#       Medication presence makes the observed pattern MORE clinically
+#       meaningful. A participant on melatonin with elevated SOL has
+#       treatment-refractory onset delay — a stronger signal than
+#       elevated SOL alone. The rule fires normally but the night is
+#       flagged as "medication_strengthened" for the paper.
+#
+#   label_normally:
+#       Medication present but does not confound the observed metric.
+#       Rule fires as if no medication were present.
+#
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  abstain_code: -1
+  abstain_reasons:
+    medication_confounded: >
+      The observed sleep metric is likely attributable to medication
+      pharmacology rather than intrinsic sleep biology. Night excluded
+      from primary phenotype labelling.
+    complex_polypharmacy: >
+      Multiple medications with opposing sleep effects are present.
+      Net pharmacological effect on sleep onset is indeterminate.
+
+# -----------------------------------------------------------------------
+# R1 modifications — subjective/objective agreement rule
+# R1 variables: SE_pct, WASO_min, SQ, DIFF, ANX, SOL_min
+# -----------------------------------------------------------------------
+R1_modifications:
+
+  stimulant_present:
+    condition: "med_stimulant_today == True"
+    affected_variable: "SOL_min"
+    action: "abstain_confounded"
+    exception: >
+      If melatonin is ALSO present (stimulant + melatonin combination),
+      do NOT abstain — instead apply strengthen_signal. The combination
+      signals refractory onset delay which is more clinically meaningful.
+    rationale: >
+      Stimulants directly delay sleep onset. SOL > threshold on a
+      stimulant day cannot be attributed to psychophysiological
+      insomnia without ruling out the pharmacological effect first.
+      The framework does not have the data to make this attribution.
+
+  melatonin_present_sol_elevated:
+    condition: >
+      med_melatonin_tonight == True
+      AND SOL_min > SOL_psychophys_min
+    action: "strengthen_signal"
+    strength_modifier: 1.5
+    rationale: >
+      Melatonin is prescribed specifically to reduce SOL. Elevated
+      SOL despite exogenous melatonin indicates the biological sleep
+      onset mechanism is substantially impaired. This is a stronger
+      clinical signal than elevated SOL alone. The rule fires normally
+      but the night is flagged as medication_strengthened.
+
+  complex_polypharmacy:
+    condition: "med_net_effect == 'opposing'"
+    action: "abstain_confounded"
+    abstain_reason: "complex_polypharmacy"
+    rationale: >
+      When a stimulant and an alpha-2 agonist are both present, the
+      net effect on SOL is patient-specific and indeterminate from
+      pharmacological principles alone. The framework cannot reliably
+      attribute observed SOL to either the medication or the
+      participant's sleep biology.
+
+  ssri_chronic_only:
+    condition: >
+      med_ssri_chronic == True
+      AND med_stimulant_today == False
+    action: "label_normally"
+    flag: "ssri_present"
+    rationale: >
+      SSRIs do not acutely affect SOL in the same way as stimulants.
+      Their primary effect is REM suppression (addressed in R2). The
+      rule fires normally but the night is flagged for the SSRI
+      sensitivity analysis in the validation layer.
+
+  alpha2_only:
+    condition: >
+      med_alpha_agonist_today == True
+      AND med_stimulant_today == False
+    action: "label_normally"
+    rationale: >
+      Guanfacine alone promotes sleep onset. Elevated SOL despite
+      guanfacine is a genuine sleep onset difficulty, not a
+      medication artefact. The rule fires normally.
+
+  non_psychotropic_only:
+    condition: "med_sleep_class == 'non_psychotropic'"
+    action: "label_normally"
+    rationale: "No sleep-relevant pharmacological effect. Rule unmodified."
+
+# -----------------------------------------------------------------------
+# R2 modifications — sleep architecture rule
+# R2 variables: N1_pct, WASO_min, TST_min, N3_pct
+# -----------------------------------------------------------------------
+R2_modifications:
+
+  ssri_rem_suppression:
+    condition: "med_ssri_chronic == True"
+    affected_variable: "REM_pct"
+    action: "flag_only"
+    flag: "rem_suppression_likely_medication"
+    rationale: >
+      SSRIs reliably suppress REM sleep. Low REM_pct in a participant
+      on chronic SSRIs may reflect medication pharmacology rather than
+      intrinsic sleep architecture. The rule fires normally but REM-
+      dependent labels are flagged for sensitivity analysis.
+      Note: R2 does not currently use REM_pct directly in its rules
+      (uses N1, WASO, TST, N3). This flag is prospective for future
+      rule extensions.
+
+  stimulant_tst:
+    condition: "med_stimulant_today == True"
+    affected_variable: "TST_min"
+    action: "flag_only"
+    flag: "tst_may_be_medication_reduced"
+    rationale: >
+      Stimulants can reduce TST. The hypersomnolence label (TST > 600
+      min) is unlikely to be confounded by stimulants in the upward
+      direction. The SDB-risk and restless labels use WASO and N3 —
+      stimulants have less direct effect on these. Flag for sensitivity
+      analysis but do not abstain.
+
+# -----------------------------------------------------------------------
+# R3 modifications — REST-activity rhythm rule
+# R3 variables: IS, IV, L5_midpoint_hour
+# -----------------------------------------------------------------------
+R3_modifications:
+
+  all_medications:
+    condition: "any medication present"
+    action: "label_normally"
+    rationale: >
+      RAR metrics (IS, IV, L5) are computed over the full study period
+      from the activity time series. They are not acutely sensitive to
+      a single day's medication. Medication effects on circadian
+      rhythm (if any) would manifest as chronic changes captured in
+      the GBTM trajectory rather than in the nightly RAR metrics.
+      R3 is not modified by per-night medication context.
+    note: >
+      Exception: if a participant started or stopped a chronobiotic
+      medication (e.g. melatonin) mid-study, the IS metric may show
+      a step change. This is not detectable from the current data
+      structure and is acknowledged as a limitation.
+
+# -----------------------------------------------------------------------
+# Reporting flags for the validation layer
+# -----------------------------------------------------------------------
+reporting:
+
+  primary_analysis:
+    include: "nights where abstain_reason is null"
+    exclude: "nights where abstain_reason in ['medication_confounded', 'complex_polypharmacy']"
+
+  sensitivity_analysis_1:
+    label: "medication_included"
+    include: "all nights including medication_confounded"
+    purpose: >
+      Tests whether phenotype distributions change when medication-
+      confounded nights are included. If distributions are similar,
+      the medication confounding effect is minimal. If distributions
+      differ, the excluded nights are clinically important.
+
+  sensitivity_analysis_2:
+    label: "stimulant_free_nights_only"
+    include: "nights where med_stimulant_today == False"
+    purpose: >
+      Isolates phenotype patterns on non-stimulant days. Most
+      informative for the SOL-related phenotypes (psychophysiological,
+      paradoxical, healthy).
+
+  sensitivity_analysis_3:
+    label: "melatonin_strengthened"
+    include: "nights flagged as medication_strengthened"
+    purpose: >
+      Characterises the subgroup with treatment-refractory sleep onset
+      delay. Expected to show higher rates of psychophysiological and
+      paradoxical insomnia phenotypes.

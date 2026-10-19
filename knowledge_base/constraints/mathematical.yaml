@@ -1,0 +1,153 @@
+# Mathematical and Physiological Constraints
+# -----------------------------------------------------------------------
+# Constraints that must hold by mathematical definition or physiological
+# impossibility. Violations indicate data quality issues upstream —
+# loader bugs, alignment errors, or device recording anomalies.
+#
+# These constraints are checked by the constraint layer BEFORE any
+# phenotype assignment. A night record that fails these checks should
+# be flagged and excluded from labelling rather than assigned a
+# potentially spurious phenotype.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  enforcement: "hard"   # violations exclude the night from labelling
+  checked_by: "nesy.knowledge.kb.constraints"
+
+# -----------------------------------------------------------------------
+# Mathematical identity constraints
+# These MUST hold by definition — any violation is a data error
+# -----------------------------------------------------------------------
+mathematical:
+
+  SE_definition:
+    description: "Sleep efficiency must equal TST / TRT × 100"
+    formula: "SE_pct == (TST_min / TRT_min) * 100"
+    tolerance: 2.0    # allow 2% rounding tolerance
+    on_violation: "flag_and_warn"
+    note: >
+      Dreem computes SE internally. Small discrepancies (< 2%) are
+      acceptable due to epoch boundary rounding. Large discrepancies
+      indicate a recording or parsing error.
+
+  stage_percentages_sum:
+    description: "N1 + N2 + N3 + REM percentages must sum to ~100%"
+    formula: "abs((N1_pct + N2_pct + N3_pct + REM_pct) - 100) <= tolerance"
+    tolerance: 2.0
+    on_violation: "flag_and_warn"
+    note: >
+      Small deviations arise from unscored epochs excluded from the
+      denominator. Deviations > 2% indicate a parsing or computation
+      error in the Dreem summary file.
+
+  stage_minutes_sum:
+    description: "N1 + N2 + N3 + REM minutes must sum to TST"
+    formula: "abs((N1_min + N2_min + N3_min + REM_min) - TST_min) <= tolerance"
+    tolerance: 5.0    # minutes
+    on_violation: "flag_and_warn"
+
+  TST_within_TRT:
+    description: "Total sleep time cannot exceed total recording time"
+    formula: "TST_min <= TRT_min"
+    on_violation: "exclude_night"
+    note: "Hard violation — physically impossible. Exclude night."
+
+  SOL_within_TRT:
+    description: "Sleep onset latency cannot exceed recording time"
+    formula: "SOL_min <= TRT_min"
+    on_violation: "exclude_night"
+
+  WASO_within_TST:
+    description: "WASO cannot exceed TST"
+    formula: "WASO_min <= TST_min"
+    on_violation: "exclude_night"
+    note: >
+      WASO is wakefulness after sleep onset — it is bounded by TST
+      because it can only occur during the sleep period.
+
+# -----------------------------------------------------------------------
+# Physiological plausibility constraints
+# Violations are unusual but not impossible — flag rather than exclude
+# -----------------------------------------------------------------------
+physiological:
+
+  SE_range:
+    description: "Sleep efficiency must be between 0 and 100%"
+    formula: "0.0 <= SE_pct <= 100.0"
+    on_violation: "exclude_night"
+
+  SOL_plausible:
+    description: "SOL should not exceed 4 hours in a typical recording"
+    formula: "SOL_min <= 240"
+    on_violation: "flag_for_review"
+    note: >
+      SOL > 4 hours is physiologically possible but extremely rare.
+      More likely indicates a recording start error or participant
+      did not attempt to sleep at recording start.
+
+  TST_plausible_min:
+    description: "TST should be at least 1 hour for a valid night"
+    formula: "TST_min >= 60"
+    on_violation: "flag_for_review"
+    note: >
+      TST < 60 minutes may indicate the participant did not sleep
+      (device worn but no sleep attempt) or a recording failure.
+
+  recording_quality:
+    description: "Dreem recording quality should meet minimum threshold"
+    formula: "recording_quality >= 0.5"
+    on_violation: "flag_for_review"
+    note: >
+      Dreem quality score below 0.5 indicates signal quality issues
+      that may affect stage scoring accuracy.
+
+  N3_plausible:
+    description: "N3 cannot exceed NREM"
+    formula: "N3_pct <= (N1_pct + N2_pct + N3_pct)"
+    on_violation: "exclude_night"
+
+  pulse_rate_plausible:
+    description: "Mean pulse rate should be within physiological bounds"
+    formula: "30.0 <= pulse_rate_bpm <= 200.0"
+    on_violation: "flag_for_review"
+
+  rmssd_plausible:
+    description: "RMSSD should be within physiological bounds"
+    formula: "0.0 <= prv_rmssd_ms <= 300.0"
+    on_violation: "flag_for_review"
+
+# -----------------------------------------------------------------------
+# Cross-modality consistency constraints
+# Large disagreements between devices flag data quality issues
+# -----------------------------------------------------------------------
+cross_modality:
+
+  embraceplus_dreem_sleep_agreement:
+    description: >
+      EmbracePlus and Dreem should broadly agree on total sleep time.
+      Large disagreements indicate device synchronisation or recording
+      issues.
+    formula: "abs(EP_TST_min - Dreem_TST_min) <= tolerance"
+    tolerance: 90     # 90 minutes — beyond this, flag for review
+    on_violation: "flag_for_review"
+    note: >
+      EmbracePlus wrist actigraphy is less accurate than Dreem EEG
+      for sleep staging. Some disagreement is expected and normal.
+      The constraint catches gross disagreements only.
+
+  diary_objective_discordance:
+    description: >
+      Extreme discordance between subjective quality (SQ) and objective
+      efficiency (SE_pct) should be flagged. Large discordance is
+      clinically meaningful (paradoxical insomnia) but extreme values
+      may indicate diary completion errors.
+    formula: >
+      NOT (SQ >= 8 AND SE_pct < 60) AND
+      NOT (SQ <= 2 AND SE_pct > 95)
+    on_violation: "flag_for_clinical_review"
+    note: >
+      Moderate discordance (good objective, poor subjective or vice
+      versa) is the hallmark of paradoxical insomnia and should NOT
+      be flagged. Only extreme values that suggest data error are
+      flagged here. The constraint is intentionally loose.

@@ -1,0 +1,418 @@
+# Sleep Phenotype Definitions
+# -----------------------------------------------------------------------
+# Eight phenotype labels used throughout the NeSy framework.
+# Labels assigned by the symbolic labelling layer (R1, R2, R3)
+# and used by the fusion model and stratification layer.
+#
+# All definitions are DSM-5 adapted for a 21-night observation window.
+# The 3-month persistence criterion is replaced by a within-window
+# frequency criterion (>= 3 nights showing the pattern).
+#
+# Sources:
+#   DSM-5 (2013). American Psychiatric Association.
+#   ICSD-3 (2014). American Academy of Sleep Medicine.
+# -----------------------------------------------------------------------
+
+meta:
+  version: "1.0.0"
+  dsm5_adaptation: >
+    3-month persistence criterion replaced by within-study frequency:
+    a pattern must appear on >= 3 nights in the study window.
+  population: "adolescents 10-17"
+  study_window: "21 nights cross-sectional"
+
+# ── label 0 ─────────────────────────────────────────────────
+healthy:
+  label: 0
+  name: "Healthy sleep"
+  dsm5_reference: "No sleep disorder"
+
+  clinical_description: >
+    Sleep within age-appropriate normative ranges across both objective
+    polysomnographic measures and subjective diary report. Both the
+    quantity and quality of sleep are adequate, with no evidence of
+    circadian disruption, breathing-related disturbance, or significant
+    subjective-objective discordance.
+
+  adolescent_considerations: >
+    Healthy adolescent sleep is characterised by longer TST than adults,
+    higher N3 proportions, and in late adolescents, a normatively
+    delayed circadian phase. The healthy label accounts for age-band
+    specific norms — a late adolescent with SOL of 28 minutes and
+    SE of 87% is healthy by age-appropriate standards even though
+    these values would be borderline in an adult.
+
+  operationalisation:
+    objective_criteria:
+      SE_pct: ">= SE_healthy_min_for_age"
+      WASO_min: "<= WASO_healthy_max_for_age"
+    subjective_criteria:
+      SQ: ">= SQ_healthy_min (7/10)"
+      DIFF: "<= DIFF_healthy_max (2/3)"
+    all_required: true
+    rule: "R1"
+
+  mutual_exclusions: [1, 2, 3, 4, 5, 6, 7]
+  note: >
+    Healthy is a positive assignment requiring BOTH objective AND
+    subjective criteria to be met. A participant with good objective
+    sleep but poor subjective report is paradoxical (label 1),
+    not healthy.
+
+# -----------------------------------------------------------------------
+# Label 4: RAR Misalignment
+# -----------------------------------------------------------------------
+
+# ── labels 1-3: insomnia spectrum ───────────────────────────
+paradoxical_insomnia:
+  label: 1
+  name: "Paradoxical insomnia"
+  dsm5_reference: "Insomnia Disorder with sleep misperception"
+  icsd3_reference: "Paradoxical Insomnia"
+
+  clinical_description: >
+    The hallmark is a substantial discordance between objective and
+    subjective sleep assessment. The participant reports poor sleep
+    quality, significant distress, or difficulty sleeping, yet
+    polysomnographic measures are within or near normal range for
+    their age. The misperception itself — not objective sleep
+    impairment — is the primary feature.
+
+  adolescent_considerations: >
+    Paradoxical insomnia in adolescents may be driven by heightened
+    arousal and hypervigilance to internal sleep cues. The subjective-
+    objective discordance can be exacerbated by exam stress, social
+    anxiety, or performance concerns about sleep. Pre-sleep worry is
+    often a mediating factor.
+
+  operationalisation:
+    objective_criteria:
+      SE_pct: ">= SE_healthy_min_for_age"
+      WASO_min: "<= WASO_healthy_max_for_age"
+      interpretation: "Objective sleep within normal range"
+    subjective_criteria:
+      SQ: "<= SQ_paradox_max"         # poor subjective quality
+      DIFF: ">= DIFF_paradox_min"     # OR high sleep difficulty
+      interpretation: "Subjective complaint despite good objective sleep"
+    both_required: true
+    rule: "R1"
+
+  distinguishing_from:
+    psychophysiological: >
+      Psychophysiological insomnia has objective impairment (elevated
+      SOL or WASO). Paradoxical insomnia has normal objective metrics
+      despite subjective complaint.
+    healthy: >
+      Healthy participants have both good objective AND good subjective
+      sleep. Paradoxical insomnia has good objective but poor subjective.
+
+# -----------------------------------------------------------------------
+# Label 2: Psychophysiological Insomnia
+# -----------------------------------------------------------------------
+psychophysiological_insomnia:
+  label: 2
+  name: "Psychophysiological insomnia"
+  dsm5_reference: "Insomnia Disorder"
+  icsd3_reference: "Psychophysiological Insomnia"
+
+  clinical_description: >
+    Learned, conditioned sleep-preventing associations combined with
+    heightened arousal focused on sleep. The participant has acquired
+    a conditioned association between the sleep environment and
+    wakefulness. Characterised by prolonged sleep onset and/or
+    frequent awakenings, elevated pre-sleep anxiety or arousal,
+    and objective sleep impairment.
+
+  adolescent_considerations: >
+    In adolescents, psychophysiological insomnia often develops in
+    the context of acute stressors (exams, social events) that
+    sensitise the arousal system to sleep cues. The conditioned
+    component means symptoms may persist beyond the original stressor.
+    Pre-sleep device use and bedroom environment are relevant contextual
+    factors not captured in this dataset.
+
+  operationalisation:
+    primary_indicators:
+      SOL_min: "> SOL_psychophys_min (45 min)"
+      ANX: ">= ANX_psychophys_min (6/10)"
+      logic: "OR — either is sufficient"
+    supporting_indicators:
+      WASO_min: "may also be elevated"
+      SQ: "typically poor (<=5)"
+    rule: "R1"
+    note: >
+      The 45-minute SOL threshold is adapted for early adolescents.
+      For late adolescents, where normative SOL is up to 30 min, the
+      effective psychophysiological threshold remains at 45 min as it
+      substantially exceeds the normative upper bound.
+
+  distinguishing_from:
+    paradoxical: >
+      Psychophysiological insomnia has objective sleep impairment.
+      Paradoxical insomnia has normal objective metrics.
+    rar_misalignment: >
+      RAR misalignment is characterised by circadian rhythm disruption
+      (IS, IV, L5) without necessarily elevated SOL or ANX.
+      Both can co-occur (see known_compound_patterns in ontology.yaml).
+
+# -----------------------------------------------------------------------
+# Label 3: Restless Sleep
+# -----------------------------------------------------------------------
+restless:
+  label: 3
+  name: "Restless sleep"
+  dsm5_reference: "Insomnia Disorder (maintenance subtype)"
+  icsd3_reference: "Restless Sleep Disorder (in children/adolescents)"
+
+  clinical_description: >
+    Characterised by sleep maintenance difficulty with high wake after
+    sleep onset despite adequate subjective quality perception. The
+    participant may not report major subjective complaint (distinguishing
+    from psychophysiological insomnia) but shows objective fragmentation
+    — elevated WASO and often elevated N1 — suggesting frequent
+    micro-arousals or movements during sleep.
+
+  adolescent_considerations: >
+    Restless Sleep Disorder (RSD) was formally described in the ICSD-3
+    supplement for children and adolescents. It is characterised by
+    large body movements during sleep ≥5 nights/week causing daytime
+    impairment. The PSG-derived restless phenotype here operationalises
+    the objective pattern (WASO, N1 elevation) without requiring movement
+    data. May overlap with restless legs syndrome or periodic limb
+    movements — not distinguishable with available data.
+
+  operationalisation:
+    criteria:
+      SQ: ">= SQ_restless_min (6/10)"      # not severely impaired subjectively
+      DIFF: "<= DIFF_restless_max (3/3)"    # some difficulty
+      WASO_min: "> WASO_restless_min (60 min)"  # objective fragmentation
+    interpretation: >
+      Good-to-moderate subjective quality combined with objectively
+      high WASO suggests the participant is not fully aware of or
+      distressed by their sleep fragmentation, yet the objective
+      disruption is clinically significant.
+    rule: "R1 (primary) + R2 (supporting)"
+
+  distinguishing_from:
+    sdb_risk: >
+      SDB-risk shows low N3 combined with high WASO and architectural
+      disruption, suggesting breathing-related arousals rather than
+      movement-related fragmentation. Both show elevated WASO but
+      differ in N3 and N1 profiles.
+    psychophysiological: >
+      Psychophysiological insomnia involves subjective complaint and
+      elevated ANX/SOL. Restless sleep has better subjective quality
+      and is driven by objective WASO rather than onset difficulty.
+
+# ── labels 4-7: circadian / architecture / coupling ─────────
+rar_misalignment:
+  label: 4
+  name: "RAR misalignment"
+  dsm5_reference: "Circadian Rhythm Sleep-Wake Disorder, Delayed Sleep Phase Type (307.45)"
+  icsd3_reference: "Delayed Sleep-Wake Phase Disorder"
+
+  clinical_description: >
+    Disruption of the rest-activity rhythm characterised by circadian
+    phase delay and/or rhythm fragmentation. The participant's activity-
+    rest cycle is misaligned with the conventional sleep-wake schedule,
+    producing a pattern of high intradaily variability and/or a delayed
+    rest phase midpoint that exceeds age-normative bounds.
+
+  adolescent_considerations: >
+    CRITICAL: Circadian phase delay is normative in late adolescents
+    (14-17) due to pubertal biological changes. The RAR misalignment
+    phenotype should only be assigned when the delay EXCEEDS normative
+    bounds for the age band. In late adolescents, L5 midpoint up to
+    05:00 and IS down to 0.45 are within normal range and should not
+    trigger this label. Age-band appropriate thresholds from
+    norms/actigraphy.yaml govern this distinction.
+
+  operationalisation:
+    primary:
+      IV: "> IV_misalign_min (1.0)"
+      L5_midpoint_hour: "> L5_misalign_threshold_for_age"
+      logic: "Both required for RAR misalignment"
+    secondary_variant:
+      IS: "< IS_coupling_max (0.4)"
+      IV: "> IV_psychophys_min (1.0)"
+      logic: "Both required → assigns label 2 (psychophysiological) via RAR pathway"
+    rule: "R3"
+
+  distinguishing_from:
+    coupling_impairment: >
+      Coupling impairment (label 7) is flagged by very low IS alone
+      (IS < 0.4) without requiring IV elevation or L5 delay.
+      RAR misalignment requires the combination of IV > 1.0 AND
+      L5 delay — a compound circadian disruption.
+
+# -----------------------------------------------------------------------
+# Label 5: Hypersomnolence
+# -----------------------------------------------------------------------
+hypersomnolence:
+  label: 5
+  name: "Hypersomnolence"
+  dsm5_reference: "Hypersomnolence Disorder (780.54)"
+
+  clinical_description: >
+    Excessive sleep duration that is non-restorative and causes
+    significant distress or functional impairment. Characterised
+    by a main sleep episode substantially exceeding age-normative
+    TST recommendations, occurring across multiple nights in the
+    study window.
+
+  adolescent_considerations: >
+    Adolescents have longer normative TST than adults (8-11 hours
+    depending on age band). The hypersomnolence threshold is therefore
+    set above the age-appropriate TST maximum, not the adult threshold.
+    Weekend hypersomnia (catching up on weekday sleep debt) is common
+    in adolescents and should be distinguished from true hypersomnolence.
+    The 21-day study window includes both weekdays and weekends —
+    if long TST occurs predominantly on weekends, it may reflect
+    social jetlag rather than hypersomnolence disorder.
+
+  operationalisation:
+    primary:
+      TST_min: "> TST_long_sleep_threshold_for_age"
+      frequency: ">= 3 nights in study window"
+    rule: "R2"
+
+  dsm5_mutual_exclusion:
+    excluded_phenotypes: [1, 2, 3]
+    rationale: >
+      DSM-5 Criterion E: hypersomnolence disorder is not better
+      explained by insomnia disorder. A participant cannot hold both
+      an insomnia subtype and hypersomnolence as their dominant label.
+
+  note: >
+    Hypersomnolence without associated functional impairment data
+    (daytime sleepiness scales not available in this dataset) should
+    be interpreted cautiously. The label flags the objective pattern;
+    clinical significance requires contextual information.
+
+# -----------------------------------------------------------------------
+# Label 6: SDB-Risk
+# -----------------------------------------------------------------------
+sdb_risk:
+  label: 6
+  name: "Sleep-disordered breathing risk"
+  dsm5_reference: "Obstructive Sleep Apnea Hypopnea (327.23)"
+  note_on_label: >
+    This is a RISK FLAG, not a diagnosis. SDB requires confirmatory
+    polysomnography with respiratory monitoring. Dreem headband does
+    not measure respiratory effort or airflow. The label indicates
+    a sleep architecture pattern consistent with SDB — low N3,
+    elevated WASO — that warrants clinical follow-up.
+
+  clinical_description: >
+    Sleep architecture pattern characterised by suppressed slow-wave
+    sleep and elevated wake after sleep onset, consistent with
+    repeated arousal events that interrupt sleep and prevent N3
+    consolidation. In the absence of respiratory monitoring, this
+    pattern is identified as an SDB risk marker rather than a
+    confirmed diagnosis.
+
+  adolescent_considerations: >
+    Paediatric SDB has a distinct presentation from adult OSA.
+    Tonsillar hypertrophy and adenoid enlargement are common
+    contributing factors in adolescents. Behavioural symptoms
+    (hyperactivity, inattention) may be more prominent than
+    daytime sleepiness. The EEG-derived architecture pattern
+    (low N3, high WASO) is a valid screening signal in this age group.
+
+  operationalisation:
+    criteria:
+      N3_pct: "< N3_sdb_max (5%)"
+      WASO_min: "> WASO_sdb_min (60 min)"
+    both_required: true
+    rule: "R2"
+
+  known_compound:
+    with_restless: >
+      SDB + Restless (labels 6+3) is a recognised compound pattern.
+      SDB-related arousals commonly manifest as restless sleep.
+      See ontology.yaml known_compound_patterns.
+
+# -----------------------------------------------------------------------
+# Label 7: Coupling Impairment
+# -----------------------------------------------------------------------
+coupling_impairment:
+  label: 7
+  name: "Autonomic-circadian coupling impairment"
+  dsm5_reference: "Circadian Rhythm Sleep-Wake Disorder (327.3x)"
+  note_on_label: >
+    Coupling impairment is not a DSM-5 category — it is a construct
+    derived from actigraphy research describing impaired synchrony
+    between the autonomic nervous system and the circadian clock.
+    The DSM-5 parent category is the broader CRSWD.
+
+  clinical_description: >
+    Severely reduced interdaily stability of the rest-activity rhythm,
+    indicating that the participant's circadian clock is not reliably
+    entraining to the 24-hour environment. The rhythm is not merely
+    delayed (as in RAR misalignment) but genuinely unstable across
+    days. This pattern reflects impaired coupling between the
+    suprachiasmatic nucleus-driven circadian signal and peripheral
+    activity.
+
+  adolescent_considerations: >
+    Coupling impairment in adolescents may reflect insufficient
+    light exposure, irregular meal timing, or social schedule
+    irregularity (weekend-weekday discrepancy). It may also be
+    a marker of developing mood disorders — bidirectional
+    circadian-mood coupling is well established. Functional
+    impairment is expected but not directly measured in this dataset.
+
+  operationalisation:
+    criteria:
+      IS: "< IS_coupling_max (0.4)"
+    single_criterion: true
+    rule: "R3"
+    note: >
+      Coupling impairment is assigned on IS alone — very low IS
+      indicates the rhythm has lost its day-to-day regularity
+      regardless of IV or L5. It is the most severe circadian
+      disruption pattern in the label set.
+
+  distinguishing_from:
+    rar_misalignment: >
+      RAR misalignment requires the combination of IV elevation and
+      L5 delay — a delayed but potentially stable phase. Coupling
+      impairment requires only very low IS — the rhythm is irregular
+      but not necessarily delayed.
+
+# -----------------------------------------------------------------------
+# Instability / Unclassified
+# -----------------------------------------------------------------------
+unstable:
+  label: null
+  name: "Unstable / unclassified"
+  label_string: "unstable"
+
+  clinical_description: >
+    No single phenotype meets the dominance threshold across the
+    study window, and/or the Shannon entropy of the nightly label
+    distribution exceeds the instability threshold. High night-to-night
+    variability in sleep phenotype is a clinically meaningful finding
+    associated with worse functional outcomes than stable poor sleep.
+
+  operationalisation:
+    conditions:
+      - "No phenotype appears on >= 40% of valid nights (dominance_threshold)"
+      - "Shannon entropy of nightly label distribution > entropy_threshold (1.5)"
+    either_condition_triggers: false
+    both_required: true
+    note: >
+      A participant must fail BOTH the dominance threshold AND exceed
+      the entropy threshold to be classified unstable. This prevents
+      misclassifying participants who simply had many abstain nights
+      (diary missing) as unstable.
+
+  output_fields:
+    instability_score: "Shannon entropy of nightly label distribution"
+    most_frequent_label: "The label that appeared most often, even if < 40%"
+    label_counts: "Count of each label across study nights"
+    note: >
+      Unstable participants are reported in the validation layer's
+      coverage report and flagged for clinical review. They are
+      NOT assigned a phenotype label but their instability_score
+      is a reportable outcome in its own right.
