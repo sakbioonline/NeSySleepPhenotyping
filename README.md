@@ -2,7 +2,7 @@
 
 This repository holds the code for the constraint-guided neuro-symbolic framework developed in the PhD thesis *Towards a Neurosymbolic Framework for Wearables-Based Multimodal Sleep Phenotyping in Neurodevelopmental Disorder* (Abiola Saka, University of Bristol, submitted September 2026).
 
-The tag `thesis-submission` marks the code as it stood at thesis submission, rebuilt as closely as the surviving files allow. The section [Provenance](#provenance) lists every file that was edited after the submission date. Later development (for journal publication) will appear in subsequent commits and tags.
+The tag `thesis-submission` marks the code as it stood at thesis submission, rebuilt as closely as the surviving files allow. The section [Provenance](#provenance) lists every file that was edited after the submission date.
 
 > **Status.** Research code. It is not a clinical tool and has not been validated for diagnosis.
 
@@ -120,7 +120,7 @@ python test_data.py --help
 
 ## Provenance
 
-No archive of the code was taken at submission (28 September 2026). This version was rebuilt from the working directory on 19 October 2026. Files are included as they were at that date unless stated otherwise.
+No archive of the code was taken at submission (25 September 2026). This version was rebuilt from the working directory on 19 October 2026. Files are included as they were at that date unless stated otherwise.
 
 **Taken from copies saved before or near submission**
 
